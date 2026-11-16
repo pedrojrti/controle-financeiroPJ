@@ -272,6 +272,21 @@
       <div class="card"><div class="rotulo">Investimentos (valor atual)</div><div class="valor" id="cInvest">R$ 0,00</div><div class="sub" id="cInvestSub"></div></div>
     </div>
 
+
+    <div class="grid-2">
+      <div class="painel">
+        <h2>Despesas por categoria</h2>
+        <div id="painelCategorias"></div>
+      </div>
+      <div class="painel">
+        <h2>Próximos vencimentos em aberto</h2>
+        <div id="painelVencimentos"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LANÇAMENTOS ============ -->
+  <section id="aba-lancamentos" class="aba">
     <div class="painel">
       <h2 id="tituloForm">Novo lançamento</h2>
       <form id="formLanc">
@@ -303,20 +318,6 @@
       </form>
     </div>
 
-    <div class="grid-2">
-      <div class="painel">
-        <h2>Despesas por categoria</h2>
-        <div id="painelCategorias"></div>
-      </div>
-      <div class="painel">
-        <h2>Próximos vencimentos em aberto</h2>
-        <div id="painelVencimentos"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ LANÇAMENTOS ============ -->
-  <section id="aba-lancamentos" class="aba">
     <div class="painel">
       <h2>Lançamentos do mês</h2>
       <div class="filtros">
@@ -692,7 +693,7 @@ $('btnCancelar').addEventListener('click', limparForm);
 
 function editar(id) {
   const l = lancamentos.find(x => x.id === id); if (!l) return;
-  irAba('painel');
+  irAba('lancamentos');
   setTipo(l.tipo);
   $('editId').value = l.id; $('fDescricao').value = l.descricao; $('fValor').value = l.valor;
   $('fCategoria').value = l.categoria; $('fNatureza').value = l.natureza;
