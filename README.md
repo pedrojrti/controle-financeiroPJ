@@ -1,4 +1,4 @@
-# 💰 Controle Financeiro Pessoal
+# 💰 Gestão Financeira Pessoal
 
 Sistema web de controle financeiro pessoal em HTML, CSS e JavaScript puro — sem dependências.
 
