@@ -112,6 +112,12 @@
   .comprometido .trilho { background: var(--bg); height: 12px; border-radius: 6px; overflow: hidden; }
   .comprometido .preenche { height: 100%; transition: width .3s; }
 
+  .modal-fundo { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: center; justify-content: center; z-index: 60; padding: 16px; }
+  .modal-fundo.show { display: flex; }
+  .modal { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; width: 100%; max-width: 520px; }
+  .modal p { margin-bottom: 14px; }
+  .modal textarea { width: 100%; height: 200px; font: 12px ui-monospace, monospace; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
+  .modal .acoes { justify-content: flex-end; }
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--card); padding: 10px 18px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 50; }
   .toast.show { opacity: 1; }
 </style>
@@ -259,6 +265,13 @@
   </section>
 </main>
 
+<div class="modal-fundo" id="modalFundo">
+  <div class="modal">
+    <p id="modalTexto"></p>
+    <textarea id="modalArea" readonly style="display:none"></textarea>
+    <div class="acoes" id="modalAcoes"></div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -374,8 +387,8 @@ function editar(id) {
   $('btnCancelar').style.display = '';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
-function excluir(id) {
-  if (!confirm('Excluir este lançamento?')) return;
+async function excluir(id) {
+  if (!(await confirmar('Excluir este lançamento?'))) return;
   lancamentos = lancamentos.filter(l => l.id !== id); salvar(); render(); toast('Lançamento excluído');
 }
 function alternarStatus(id) {
@@ -540,16 +553,31 @@ $('mesProximo').addEventListener('click', () => { mesRef.setMonth(mesRef.getMont
 
 /* ===================== Dados: backup ===================== */
 function baixar(nome, conteudo, tipo) {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([conteudo], { type: tipo }));
-  a.download = nome; a.click(); URL.revokeObjectURL(a.href);
+  try {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([conteudo], { type: tipo }));
+    a.download = nome; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  } catch (e) {}
 }
-$('btnExportar').addEventListener('click', () => baixar(`financeiro-${hojeISO()}.json`, JSON.stringify(lancamentos, null, 2), 'application/json'));
+function exportar(nome, conteudo, tipo) {
+  abrirModal({
+    texto: 'Copie o conteúdo abaixo e salve num arquivo, ou tente baixar direto (alguns ambientes bloqueiam o download).',
+    area: conteudo,
+    botoes: [
+      { rotulo: 'Fechar', acao: fecharModal },
+      { rotulo: 'Baixar arquivo', acao: () => baixar(nome, conteudo, tipo) },
+      { rotulo: 'Copiar', primario: true, acao: async () => {
+          try { await navigator.clipboard.writeText(conteudo); toast('Copiado!'); }
+          catch (e) { $('modalArea').select(); toast('Selecione e copie manualmente'); } } }
+    ]
+  });
+}
+$('btnExportar').addEventListener('click', () => exportar(`financeiro-${hojeISO()}.json`, JSON.stringify(lancamentos, null, 2), 'application/json'));
 $('btnExportarCSV').addEventListener('click', () => {
   const cab = 'Data;Descrição;Tipo;Categoria;Natureza;Status;Valor\n';
   const linhas = lancamentos.slice().sort((a, b) => a.data.localeCompare(b.data))
     .map(l => [fmtData(l.data), `"${l.descricao.replace(/"/g, '""')}"`, l.tipo, l.categoria, l.natureza, l.status, l.valor.toFixed(2).replace('.', ',')].join(';'));
-  baixar(`financeiro-${hojeISO()}.csv`, '﻿' + cab + linhas.join('\n'), 'text/csv');
+  exportar(`financeiro-${hojeISO()}.csv`, '﻿' + cab + linhas.join('\n'), 'text/csv');
 });
 $('inputImportar').addEventListener('change', e => {
   const f = e.target.files[0]; if (!f) return;
@@ -564,11 +592,11 @@ $('inputImportar').addEventListener('change', e => {
   };
   r.readAsText(f); e.target.value = '';
 });
-$('btnLimpar').addEventListener('click', () => {
-  if (confirm('Apagar TODOS os lançamentos? Essa ação não pode ser desfeita.')) { lancamentos = []; salvar(); render(); toast('Dados apagados'); }
+$('btnLimpar').addEventListener('click', async () => {
+  if (await confirmar('Apagar TODOS os lançamentos? Essa ação não pode ser desfeita.')) { lancamentos = []; salvar(); render(); toast('Dados apagados'); }
 });
-$('btnExemplo').addEventListener('click', () => {
-  if (lancamentos.length && !confirm('Isso vai adicionar lançamentos de exemplo aos seus dados. Continuar?')) return;
+$('btnExemplo').addEventListener('click', async () => {
+  if (lancamentos.length && !(await confirmar('Isso vai adicionar lançamentos de exemplo aos seus dados. Continuar?'))) return;
   const base = new Date(); base.setDate(1);
   for (let i = 5; i >= 0; i--) {
     const d = new Date(base); d.setMonth(d.getMonth() - i);
@@ -587,6 +615,27 @@ $('btnExemplo').addEventListener('click', () => {
   }
   salvar(); render(); toast('Dados de exemplo carregados');
 });
+
+/* ===================== Modal / confirmação ===================== */
+function abrirModal({ texto, area, botoes }) {
+  $('modalTexto').textContent = texto;
+  $('modalArea').style.display = area != null ? '' : 'none';
+  $('modalArea').value = area || '';
+  $('modalAcoes').innerHTML = '';
+  botoes.forEach(b => {
+    const el = document.createElement('button');
+    el.type = 'button'; el.className = 'btn' + (b.primario ? ' primario' : ''); el.textContent = b.rotulo;
+    el.addEventListener('click', b.acao); $('modalAcoes').appendChild(el);
+  });
+  $('modalFundo').classList.add('show');
+}
+function fecharModal() { $('modalFundo').classList.remove('show'); }
+function confirmar(msg) {
+  return new Promise(res => abrirModal({ texto: msg, botoes: [
+    { rotulo: 'Cancelar', acao: () => { fecharModal(); res(false); } },
+    { rotulo: 'Confirmar', primario: true, acao: () => { fecharModal(); res(true); } }
+  ]}));
+}
 
 /* ===================== Toast ===================== */
 let tTimer;
