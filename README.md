@@ -12,6 +12,7 @@ Sistema web de controle financeiro pessoal em HTML, CSS e JavaScript puro — se
 - Relatório: histórico de 3 a 24 meses e projeção de 24 meses com cenários e vários gráficos
 - Backup/restauração em JSON e exportação CSV para Excel
 - Login de usuário com dados criptografados (AES-GCM, chave derivada da senha com PBKDF2)
+- Logo personalizado ao lado do título
 - Tema escuro ou claro (botão ☀️/🌙 no topo)
 
 ## Como usar
