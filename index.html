@@ -22,6 +22,24 @@
     --radius: 12px;
     --shadow: none;
   }
+  [data-tema="claro"] {
+    color-scheme: light;
+    --bg: #f4f6fa;
+    --card: #ffffff;
+    --text: #1d2433;
+    --muted: #6b7489;
+    --border: #e3e7ef;
+    --primary: #2f5bea;
+    --receita: #12a150;
+    --receita-bg: #e7f7ee;
+    --despesa: #d93a3a;
+    --despesa-bg: #fdecec;
+    --alerta: #b07800;
+    --alerta-bg: #fff6df;
+    --shadow: 0 1px 3px rgba(20, 30, 60, .08);
+    --login-brilho: #dfe6ff;
+  }
+  .btn-tema { font-size: 16px; line-height: 1; padding: 6px 10px; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -137,9 +155,9 @@
   .ponto-vivo { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--receita); margin-right: 6px; animation: pulsa 1.6s infinite; }
   @keyframes pulsa { 0%,100% { opacity: 1 } 50% { opacity: .3 } }
   .campo-oculto { display: none !important; }
-  #telaLogin { position: fixed; inset: 0; z-index: 100; background: radial-gradient(circle at 30% 20%, #1d2740 0%, var(--bg) 60%); display: flex; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+  #telaLogin { position: fixed; inset: 0; z-index: 100; background: radial-gradient(circle at 30% 20%, var(--login-brilho, #1d2740) 0%, var(--bg) 60%); display: flex; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
   #telaLogin.oculta { display: none; }
-  .login-caixa { width: 100%; max-width: 400px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px 24px; box-shadow: 0 20px 50px rgba(0,0,0,.4); }
+  .login-caixa { width: 100%; max-width: 400px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px 24px; box-shadow: 0 20px 50px rgba(0,0,0,.25); }
   .login-logo { text-align: center; margin-bottom: 22px; }
   .login-logo .icone { font-size: 44px; line-height: 1; }
   .login-logo h1 { font-size: 20px; margin-top: 8px; }
@@ -164,6 +182,9 @@
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--card); padding: 10px 18px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 50; }
   .toast.show { opacity: 1; }
 </style>
+<script>
+  try { if (localStorage.getItem('gfp.tema') === 'claro') document.documentElement.setAttribute('data-tema', 'claro'); } catch (e) {}
+</script>
 </head>
 <body>
 
@@ -214,6 +235,7 @@
     <div class="usuario-topo">
       <div class="avatar" id="avatar">?</div>
       <span id="nomeUsuario"></span>
+      <button class="btn pequeno btn-tema" id="btnTema" title="Alternar tema claro/escuro" aria-label="Alternar tema claro/escuro">☀️</button>
       <button class="btn pequeno" id="btnSair">Sair</button>
     </div>
   </div>
@@ -1539,6 +1561,20 @@ async function iniciarAuth() {
   } catch (e) {}
   mostrarLogin();
 }
+
+/* ===================== Tema claro / escuro ===================== */
+function aplicarTema(tema) {
+  if (tema === 'claro') document.documentElement.setAttribute('data-tema', 'claro');
+  else document.documentElement.removeAttribute('data-tema');
+  $('btnTema').textContent = tema === 'claro' ? '🌙' : '☀️';
+  $('btnTema').title = tema === 'claro' ? 'Mudar para tema escuro' : 'Mudar para tema claro';
+  try { localStorage.setItem('gfp.tema', tema); } catch (e) {}
+}
+$('btnTema').addEventListener('click', () => {
+  aplicarTema(document.documentElement.getAttribute('data-tema') === 'claro' ? 'escuro' : 'claro');
+  render();   // redesenha os gráficos com as cores do tema
+});
+aplicarTema(document.documentElement.getAttribute('data-tema') === 'claro' ? 'claro' : 'escuro');
 
 /* ===================== Toast ===================== */
 let tTimer;
