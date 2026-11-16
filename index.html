@@ -122,6 +122,20 @@
   .modal p { margin-bottom: 14px; }
   .modal textarea { width: 100%; height: 200px; font: 12px ui-monospace, monospace; color: var(--text); background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 8px; }
   .modal .acoes { justify-content: flex-end; }
+  .rel-controles { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 14px; }
+  .rel-controles label { min-width: 150px; }
+  .cabecalho-painel { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+  .cabecalho-painel h2 { margin: 0; }
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; flex-wrap: wrap; }
+  .seg button { font: inherit; font-size: 13px; font-weight: 600; padding: 6px 12px; border: 0; background: var(--bg); color: var(--muted); cursor: pointer; }
+  .seg button.on { background: var(--primary); color: #fff; }
+  .rosca-wrap { display: flex; flex-wrap: wrap; gap: 20px; align-items: center; }
+  .rosca-wrap svg { width: 240px; max-width: 100%; flex: 0 0 auto; }
+  .rosca-leg { flex: 1; min-width: 220px; font-size: 13px; }
+  .rosca-leg div { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--border); }
+  .rosca-leg i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
+  .nota { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  details summary { cursor: pointer; font-weight: 600; margin-top: 14px; color: var(--primary); }
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--card); padding: 10px 18px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 50; }
   .toast.show { opacity: 1; }
 </style>
@@ -142,6 +156,7 @@
     <button data-aba="painel" class="ativa">Painel</button>
     <button data-aba="lancamentos">Lançamentos</button>
     <button data-aba="comparativo">Comparativo</button>
+    <button data-aba="relatorio">Relatório</button>
     <button data-aba="dados">Dados</button>
   </nav>
 
@@ -251,6 +266,76 @@
           <tbody id="tabelaResumo"></tbody>
         </table>
       </div>
+    </div>
+  </section>
+
+  <!-- ============ RELATÓRIO ============ -->
+  <section id="aba-relatorio" class="aba">
+    <div class="painel">
+      <div class="cabecalho-painel">
+        <h2>Relatório do período</h2>
+        <div class="seg" id="segPeriodo">
+          <button data-v="3">3 meses</button><button data-v="6">6 meses</button><button data-v="12" class="on">12 meses</button><button data-v="24">24 meses</button>
+        </div>
+      </div>
+      <div class="cards" style="margin-bottom:0">
+        <div class="card"><div class="rotulo">Receitas no período</div><div class="valor verde" id="rReceitas"></div><div class="sub" id="rReceitasMedia"></div></div>
+        <div class="card"><div class="rotulo">Despesas no período</div><div class="valor vermelho" id="rDespesas"></div><div class="sub" id="rDespesasMedia"></div></div>
+        <div class="card"><div class="rotulo">Saldo do período</div><div class="valor" id="rSaldo"></div><div class="sub" id="rSaldoMedia"></div></div>
+        <div class="card"><div class="rotulo">Taxa de economia</div><div class="valor" id="rTaxa"></div><div class="sub" id="rMelhorPior"></div></div>
+      </div>
+    </div>
+
+    <div class="painel grafico">
+      <div class="cabecalho-painel">
+        <h2 id="tituloHist">Histórico</h2>
+        <div class="seg" id="segGrafHist">
+          <button data-v="barras" class="on">Barras</button><button data-v="linhas">Linhas</button><button data-v="acumulado">Saldo acumulado</button><button data-v="categorias">Por categoria</button>
+        </div>
+      </div>
+      <div id="grafHist"></div>
+      <details><summary>Ver tabela do histórico</summary>
+        <div class="tabela-wrap"><table>
+          <thead><tr><th>Mês</th><th class="num">Receitas</th><th class="num">Despesas</th><th class="num">Saldo</th><th class="num">Acumulado</th></tr></thead>
+          <tbody id="tabHist"></tbody>
+        </table></div>
+      </details>
+    </div>
+
+    <div class="painel grafico">
+      <div class="cabecalho-painel">
+        <h2>Projeção — próximos 24 meses</h2>
+        <div class="seg" id="segGrafProj">
+          <button data-v="acumulado" class="on">Saldo acumulado</button><button data-v="barras">Barras</button><button data-v="linhas">Linhas</button><button data-v="cenarios">Comparar cenários</button>
+        </div>
+      </div>
+      <div class="rel-controles">
+        <label>Cenário
+          <select id="pCenario">
+            <option value="conservador">Conservador</option>
+            <option value="realista" selected>Realista</option>
+            <option value="otimista">Otimista</option>
+            <option value="personalizado">Personalizado</option>
+          </select>
+        </label>
+        <label>Reajuste das receitas (% ao ano) <input id="pReajR" type="number" step="0.5"></label>
+        <label>Reajuste das despesas (% ao ano) <input id="pReajD" type="number" step="0.5"></label>
+        <label>Saldo inicial (R$) <input id="pSaldoIni" type="number" step="0.01"></label>
+      </div>
+      <div class="cards">
+        <div class="card"><div class="rotulo">Saldo acumulado em 12 meses</div><div class="valor" id="p12"></div></div>
+        <div class="card"><div class="rotulo">Saldo acumulado em 24 meses</div><div class="valor" id="p24"></div></div>
+        <div class="card"><div class="rotulo">Sobra média por mês</div><div class="valor" id="pMedia"></div></div>
+        <div class="card"><div class="rotulo">Alerta</div><div class="valor" id="pAlerta" style="font-size:16px"></div></div>
+      </div>
+      <div id="grafProj"></div>
+      <p class="nota" id="notaProj"></p>
+      <details><summary>Ver tabela da projeção</summary>
+        <div class="tabela-wrap"><table>
+          <thead><tr><th>Mês</th><th class="num">Receitas</th><th class="num">Despesas</th><th class="num">Saldo</th><th class="num">Acumulado</th></tr></thead>
+          <tbody id="tabProj"></tbody>
+        </table></div>
+      </details>
     </div>
   </section>
 
@@ -433,7 +518,7 @@ function alternarStatus(id) {
 /* ===================== Renderização ===================== */
 function render() {
   $('mesAtual').textContent = nomeMes(mesRef);
-  renderPainel(); renderTabela(); renderComparativo();
+  renderPainel(); renderTabela(); renderComparativo(); renderRelatorio();
 }
 
 function barrasCategoria(lista, classeExtra = '') {
@@ -649,6 +734,233 @@ $('btnExemplo').addEventListener('click', async () => {
   }
   salvar(); render(); toast('Dados de exemplo carregados');
 });
+
+/* ===================== Relatório ===================== */
+const CENARIOS = {
+  conservador: { r: 0, d: 6 },
+  realista: { r: 4, d: 4.5 },
+  otimista: { r: 8, d: 3 }
+};
+const PALETA = ['#2f5bea', '#d93a3a', '#12a150', '#c98a00', '#8e44ad', '#16a2b8', '#e67e22', '#7f8c8d', '#e84393', '#00b894', '#6c5ce7', '#b33939'];
+const relEstado = { periodo: 12, grafHist: 'barras', grafProj: 'acumulado', saldoIniEditado: false };
+
+function ligarSeg(id, chave) {
+  $(id).querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    $(id).querySelectorAll('button').forEach(x => x.classList.toggle('on', x === b));
+    relEstado[chave] = chave === 'periodo' ? Number(b.dataset.v) : b.dataset.v;
+    renderRelatorio();
+  }));
+}
+ligarSeg('segPeriodo', 'periodo'); ligarSeg('segGrafHist', 'grafHist'); ligarSeg('segGrafProj', 'grafProj');
+
+function aplicarCenario() {
+  const c = CENARIOS[$('pCenario').value]; if (!c) return;
+  $('pReajR').value = c.r; $('pReajD').value = c.d;
+}
+$('pCenario').addEventListener('change', () => { aplicarCenario(); renderRelatorio(); });
+['pReajR', 'pReajD'].forEach(id => $(id).addEventListener('input', () => { $('pCenario').value = 'personalizado'; renderRelatorio(); }));
+$('pSaldoIni').addEventListener('input', () => { relEstado.saldoIniEditado = true; renderRelatorio(); });
+aplicarCenario();
+
+function mesesAte(fim, n) {           // n meses terminando em "fim" (inclusive)
+  const r = [];
+  for (let i = n - 1; i >= 0; i--) { const d = new Date(fim.getFullYear(), fim.getMonth() - i, 1); r.push(d); }
+  return r;
+}
+function mesesApos(inicio, n) {       // n meses depois de "inicio"
+  const r = [];
+  for (let i = 1; i <= n; i++) r.push(new Date(inicio.getFullYear(), inicio.getMonth() + i, 1));
+  return r;
+}
+
+function projetar(rR, rD, saldoIni, mediaR, mediaD) {
+  const hoje = new Date(); hoje.setDate(1);
+  let acc = saldoIni;
+  return mesesApos(hoje, 24).map((d, i) => {
+    const k = i + 1;
+    const ag = totais(doMes(chaveMes(d)));           // lançamentos já agendados
+    const rec = Math.max(ag.receitas, mediaR * Math.pow(1 + rR / 100, k / 12));
+    const desp = Math.max(ag.despesas, mediaD * Math.pow(1 + rD / 100, k / 12));
+    acc += rec - desp;
+    return { d, receitas: rec, despesas: desp, saldo: rec - desp, acumulado: acc };
+  });
+}
+
+function renderRelatorio() {
+  const hoje = new Date(); hoje.setDate(1);
+  const n = relEstado.periodo;
+  const meses = mesesAte(hoje, n);
+  let acc = 0;
+  const hist = meses.map(d => { const t = totais(doMes(chaveMes(d))); acc += t.saldo; return { d, ...t, acumulado: acc }; });
+  const tot = hist.reduce((a, x) => ({ r: a.r + x.receitas, d: a.d + x.despesas }), { r: 0, d: 0 });
+  const comDados = hist.filter(x => x.receitas || x.despesas);
+  const nDados = Math.max(1, comDados.length);
+
+  // ---- Cards ----
+  $('rReceitas').textContent = brl(tot.r);
+  $('rReceitasMedia').textContent = `Média: ${brl(tot.r / nDados)}/mês`;
+  $('rDespesas').textContent = brl(tot.d);
+  $('rDespesasMedia').textContent = `Média: ${brl(tot.d / nDados)}/mês`;
+  const saldo = tot.r - tot.d;
+  $('rSaldo').textContent = brl(saldo); $('rSaldo').className = 'valor ' + (saldo >= 0 ? 'verde' : 'vermelho');
+  $('rSaldoMedia').textContent = `Média: ${brl(saldo / nDados)}/mês · ${comDados.length} mês(es) com lançamentos`;
+  const taxa = tot.r ? saldo / tot.r * 100 : 0;
+  $('rTaxa').textContent = tot.r ? taxa.toFixed(1) + '%' : '—';
+  $('rTaxa').className = 'valor ' + (taxa >= 0 ? 'verde' : 'vermelho');
+  if (comDados.length) {
+    const melhor = comDados.reduce((a, b) => b.saldo > a.saldo ? b : a);
+    const pior = comDados.reduce((a, b) => b.saldo < a.saldo ? b : a);
+    $('rMelhorPior').textContent = `Melhor: ${nomeMes(melhor.d, true)} · Pior: ${nomeMes(pior.d, true)}`;
+  } else $('rMelhorPior').textContent = 'Sem lançamentos no período';
+
+  // ---- Gráfico do histórico ----
+  $('tituloHist').textContent = `Histórico — últimos ${n} meses`;
+  const labels = hist.map(x => nomeMes(x.d, true));
+  const g = relEstado.grafHist;
+  if (g === 'barras') $('grafHist').innerHTML = graficoXY(labels, [
+    { nome: 'Receitas', cor: 'var(--receita)', valores: hist.map(x => x.receitas) },
+    { nome: 'Despesas', cor: 'var(--despesa)', valores: hist.map(x => x.despesas) },
+    { nome: 'Saldo', cor: 'var(--primary)', valores: hist.map(x => x.saldo), linha: true }], 'barras');
+  else if (g === 'linhas') $('grafHist').innerHTML = graficoXY(labels, [
+    { nome: 'Receitas', cor: 'var(--receita)', valores: hist.map(x => x.receitas) },
+    { nome: 'Despesas', cor: 'var(--despesa)', valores: hist.map(x => x.despesas) },
+    { nome: 'Saldo', cor: 'var(--primary)', valores: hist.map(x => x.saldo) }], 'linhas');
+  else if (g === 'acumulado') $('grafHist').innerHTML = graficoXY(labels, [
+    { nome: 'Saldo acumulado', cor: 'var(--primary)', valores: hist.map(x => x.acumulado) }], 'area');
+  else {
+    const chaves = new Set(meses.map(chaveMes));
+    const porCat = {};
+    lancamentos.filter(l => l.tipo === 'despesa' && chaves.has(l.data.slice(0, 7)))
+      .forEach(l => porCat[l.categoria] = (porCat[l.categoria] || 0) + l.valor);
+    $('grafHist').innerHTML = graficoRosca(Object.entries(porCat).map(([nome, valor]) => ({ nome, valor })), 'Despesas');
+  }
+  $('tabHist').innerHTML = linhasTabela(hist.slice().reverse());
+
+  // ---- Projeção ----
+  const base = mesesAte(hoje, 12).map(d => totais(doMes(chaveMes(d)))).filter(t => t.receitas || t.despesas);
+  const nb = Math.max(1, base.length);
+  const mediaR = base.reduce((s, t) => s + t.receitas, 0) / nb;
+  const mediaD = base.reduce((s, t) => s + t.despesas, 0) / nb;
+
+  if (!relEstado.saldoIniEditado) {
+    const realizado = lancamentos.filter(l => l.data.slice(0, 7) <= chaveMes(hoje))
+      .reduce((s, l) => s + (l.tipo === 'receita' ? l.valor : -l.valor), 0);
+    $('pSaldoIni').value = realizado.toFixed(2);
+  }
+  const saldoIni = parseFloat($('pSaldoIni').value) || 0;
+  const rR = parseFloat($('pReajR').value) || 0, rD = parseFloat($('pReajD').value) || 0;
+  const proj = projetar(rR, rD, saldoIni, mediaR, mediaD);
+
+  const cor = v => 'valor ' + (v >= 0 ? 'verde' : 'vermelho');
+  $('p12').textContent = brl(proj[11].acumulado); $('p12').className = cor(proj[11].acumulado);
+  $('p24').textContent = brl(proj[23].acumulado); $('p24').className = cor(proj[23].acumulado);
+  const media = proj.reduce((s, x) => s + x.saldo, 0) / 24;
+  $('pMedia').textContent = brl(media); $('pMedia').className = cor(media);
+  const negativo = proj.find(x => x.acumulado < 0);
+  const deficit = proj.find(x => x.saldo < 0);
+  $('pAlerta').innerHTML = negativo ? `<span class="vermelho">Saldo fica negativo em ${nomeMes(negativo.d, true)}</span>`
+    : deficit ? `<span style="color:var(--alerta)">Despesas superam receitas a partir de ${nomeMes(deficit.d, true)}</span>`
+    : '<span class="verde">Nenhum mês negativo previsto ✓</span>';
+
+  const lp = proj.map(x => nomeMes(x.d, true));
+  const gp = relEstado.grafProj;
+  if (gp === 'acumulado') $('grafProj').innerHTML = graficoXY(lp, [
+    { nome: 'Saldo acumulado projetado', cor: 'var(--primary)', valores: proj.map(x => x.acumulado) }], 'area');
+  else if (gp === 'barras') $('grafProj').innerHTML = graficoXY(lp, [
+    { nome: 'Receitas', cor: 'var(--receita)', valores: proj.map(x => x.receitas) },
+    { nome: 'Despesas', cor: 'var(--despesa)', valores: proj.map(x => x.despesas) },
+    { nome: 'Saldo', cor: 'var(--primary)', valores: proj.map(x => x.saldo), linha: true }], 'barras');
+  else if (gp === 'linhas') $('grafProj').innerHTML = graficoXY(lp, [
+    { nome: 'Receitas', cor: 'var(--receita)', valores: proj.map(x => x.receitas) },
+    { nome: 'Despesas', cor: 'var(--despesa)', valores: proj.map(x => x.despesas) }], 'linhas');
+  else {
+    const cores = { conservador: 'var(--despesa)', realista: 'var(--primary)', otimista: 'var(--receita)' };
+    $('grafProj').innerHTML = graficoXY(lp, Object.entries(CENARIOS).map(([k, c]) => ({
+      nome: k[0].toUpperCase() + k.slice(1) + ` (+${c.r}% / +${c.d}%)`, cor: cores[k],
+      valores: projetar(c.r, c.d, saldoIni, mediaR, mediaD).map(x => x.acumulado) })), 'linhas');
+  }
+  $('notaProj').textContent = base.length
+    ? `Base: média dos últimos ${base.length} mês(es) com lançamentos — receitas ${brl(mediaR)} e despesas ${brl(mediaD)} por mês, reajustadas pelo percentual anual escolhido. Quando um mês futuro já tem lançamentos agendados maiores que a média, o valor agendado é usado.`
+    : 'Cadastre lançamentos (ou carregue os dados de exemplo em "Dados") para gerar a projeção.';
+  $('tabProj').innerHTML = linhasTabela(proj);
+}
+
+function linhasTabela(lista) {
+  return lista.map(x => `<tr>
+    <td style="text-transform:capitalize">${nomeMes(x.d)}</td>
+    <td class="num verde">${brl(x.receitas)}</td>
+    <td class="num vermelho">${brl(x.despesas)}</td>
+    <td class="num ${x.saldo >= 0 ? 'verde' : 'vermelho'}">${brl(x.saldo)}</td>
+    <td class="num ${x.acumulado >= 0 ? '' : 'vermelho'}">${brl(x.acumulado)}</td></tr>`).join('');
+}
+
+/* ---------- Gráficos em SVG puro ---------- */
+function graficoXY(labels, series, tipo) {
+  const W = 760, H = 300, mE = 74, mD = 16, mT = 16, mB = 34;
+  const todos = series.flatMap(s => s.valores);
+  let max = Math.max(0, ...todos), min = Math.min(0, ...todos);
+  if (max === min) max = min + 1;
+  const folga = (max - min) * 0.06; max += max > 0 ? folga : 0; min -= min < 0 ? folga : 0;
+  const y = v => mT + (max - v) / (max - min) * (H - mT - mB);
+  const n = labels.length, gw = (W - mE - mD) / n;
+  const cx = i => mE + gw * i + gw / 2;
+  const passo = Math.ceil(n / 12);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img">`;
+  for (let i = 0; i <= 4; i++) {
+    const v = min + (max - min) * i / 4, yy = y(v);
+    svg += `<line x1="${mE}" x2="${W - mD}" y1="${yy}" y2="${yy}" stroke="var(--border)"/>
+      <text x="${mE - 8}" y="${yy + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${abrev(v)}</text>`;
+  }
+  if (min < 0) svg += `<line x1="${mE}" x2="${W - mD}" y1="${y(0)}" y2="${y(0)}" stroke="var(--muted)" stroke-dasharray="4 3"/>`;
+  labels.forEach((l, i) => { if (i % passo === 0) svg += `<text x="${cx(i)}" y="${H - 12}" text-anchor="middle" font-size="11" fill="var(--muted)">${l}</text>`; });
+
+  const y0 = y(0);
+  const linha = (s, larg = 2.5) => {
+    let out = `<polyline points="${s.valores.map((v, i) => cx(i) + ',' + y(v)).join(' ')}" fill="none" stroke="${s.cor}" stroke-width="${larg}" stroke-linejoin="round"/>`;
+    s.valores.forEach((v, i) => out += `<circle cx="${cx(i)}" cy="${y(v)}" r="${n > 24 ? 2.5 : 3.5}" fill="${s.cor}"><title>${labels[i]} — ${s.nome}: ${brl(v)}</title></circle>`);
+    return out;
+  };
+  if (tipo === 'barras') {
+    const bs = series.filter(s => !s.linha);
+    const bw = Math.min(24, gw * 0.8 / bs.length);
+    bs.forEach((s, j) => s.valores.forEach((v, i) => {
+      const x = cx(i) - bw * bs.length / 2 + j * bw;
+      svg += `<rect x="${x + 1}" y="${Math.min(y(v), y0)}" width="${bw - 2}" height="${Math.abs(y0 - y(v))}" rx="2" fill="${s.cor}"><title>${labels[i]} — ${s.nome}: ${brl(v)}</title></rect>`;
+    }));
+    series.filter(s => s.linha).forEach(s => svg += linha(s));
+  } else if (tipo === 'area') {
+    const s = series[0];
+    const pts = s.valores.map((v, i) => cx(i) + ',' + y(v)).join(' ');
+    svg += `<polygon points="${cx(0)},${y0} ${pts} ${cx(n - 1)},${y0}" fill="${s.cor}" fill-opacity=".15"/>` + linha(s);
+  } else series.forEach(s => svg += linha(s));
+  svg += '</svg>';
+  return svg + `<div class="legenda">${series.map(s => `<span><i style="background:${s.cor}"></i>${s.nome}</span>`).join('')}</div>`;
+}
+
+function graficoRosca(itens, rotulo) {
+  itens = itens.filter(x => x.valor > 0).sort((a, b) => b.valor - a.valor);
+  if (!itens.length) return '<div class="vazio">Nenhuma despesa no período.</div>';
+  const total = itens.reduce((s, x) => s + x.valor, 0);
+  const C = 120, R = 110, Ri = 66;
+  const pt = (r, a) => `${C + r * Math.sin(a)},${C - r * Math.cos(a)}`;
+  let a0 = 0, svg = `<svg viewBox="0 0 240 240" role="img">`;
+  itens.forEach((x, i) => {
+    const cor = PALETA[i % PALETA.length];
+    const frac = x.valor / total;
+    const tip = `<title>${x.nome}: ${brl(x.valor)} (${(frac * 100).toFixed(1)}%)</title>`;
+    if (frac >= 0.9999) {
+      svg += `<circle cx="${C}" cy="${C}" r="${(R + Ri) / 2}" fill="none" stroke="${cor}" stroke-width="${R - Ri}">${tip}</circle>`;
+    } else {
+      const a1 = a0 + frac * Math.PI * 2, g = a1 - a0 > Math.PI ? 1 : 0;
+      svg += `<path d="M${pt(R, a0)} A${R},${R} 0 ${g} 1 ${pt(R, a1)} L${pt(Ri, a1)} A${Ri},${Ri} 0 ${g} 0 ${pt(Ri, a0)} Z" fill="${cor}" stroke="var(--card)" stroke-width="1.5">${tip}</path>`;
+      a0 = a1;
+    }
+  });
+  svg += `<text x="${C}" y="${C - 4}" text-anchor="middle" font-size="12" fill="var(--muted)">${rotulo}</text>
+    <text x="${C}" y="${C + 16}" text-anchor="middle" font-size="15" font-weight="700" fill="var(--text)">${abrev(total)}</text></svg>`;
+  const leg = itens.map((x, i) => `<div><span><i style="background:${PALETA[i % PALETA.length]}"></i>${x.nome}</span><span>${brl(x.valor)} · ${(x.valor / total * 100).toFixed(1)}%</span></div>`).join('');
+  return `<div class="rosca-wrap">${svg}<div class="rosca-leg">${leg}</div></div>`;
+}
 
 /* ===================== Modal / confirmação ===================== */
 function abrirModal({ texto, area, botoes }) {
