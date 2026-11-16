@@ -137,18 +137,85 @@
   .ponto-vivo { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--receita); margin-right: 6px; animation: pulsa 1.6s infinite; }
   @keyframes pulsa { 0%,100% { opacity: 1 } 50% { opacity: .3 } }
   .campo-oculto { display: none !important; }
+  #telaLogin { position: fixed; inset: 0; z-index: 100; background: radial-gradient(circle at 30% 20%, #1d2740 0%, var(--bg) 60%); display: flex; align-items: center; justify-content: center; padding: 20px; overflow-y: auto; }
+  #telaLogin.oculta { display: none; }
+  .login-caixa { width: 100%; max-width: 400px; background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 28px 24px; box-shadow: 0 20px 50px rgba(0,0,0,.4); }
+  .login-logo { text-align: center; margin-bottom: 22px; }
+  .login-logo .icone { font-size: 44px; line-height: 1; }
+  .login-logo h1 { font-size: 20px; margin-top: 8px; }
+  .login-logo p { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .login-abas { display: flex; background: var(--bg); border-radius: 10px; padding: 4px; margin-bottom: 18px; }
+  .login-abas button { flex: 1; border: 0; background: transparent; color: var(--muted); font: inherit; font-weight: 700; padding: 9px; border-radius: 8px; cursor: pointer; }
+  .login-abas button.on { background: var(--primary); color: #fff; }
+  .login-form { display: none; flex-direction: column; gap: 12px; }
+  .login-form.on { display: flex; }
+  .login-form .btn { width: 100%; padding: 11px; margin-top: 4px; }
+  .senha-wrap { position: relative; display: flex; }
+  .senha-wrap input { flex: 1; padding-right: 64px; }
+  .senha-wrap button { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); border: 0; background: transparent; color: var(--primary); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+  .login-erro { background: var(--despesa-bg); color: var(--despesa); border-radius: 8px; padding: 9px 12px; font-size: 13px; display: none; }
+  .login-erro.show { display: block; }
+  .login-info { color: var(--muted); font-size: 12px; line-height: 1.5; }
+  .forca { height: 4px; border-radius: 2px; background: var(--border); overflow: hidden; margin-top: 6px; }
+  .forca div { height: 100%; width: 0; transition: width .2s, background .2s; }
+  .usuario-topo { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
+  .topo-dir { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--card); padding: 10px 18px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 50; }
   .toast.show { opacity: 1; }
 </style>
 </head>
 <body>
 
+<div id="telaLogin">
+  <div class="login-caixa">
+    <div class="login-logo">
+      <div class="icone">💰</div>
+      <h1>Gestão Financeira Pessoal</h1>
+      <p>Acesse sua conta para continuar</p>
+    </div>
+    <div class="login-abas">
+      <button type="button" data-form="entrar" class="on">Entrar</button>
+      <button type="button" data-form="criar">Criar conta</button>
+    </div>
+    <div class="login-erro" id="loginErro"></div>
+
+    <form class="login-form on" id="formEntrar" autocomplete="on">
+      <label>Usuário <input id="lUsuario" autocomplete="username" required placeholder="seu usuário"></label>
+      <label>Senha
+        <div class="senha-wrap"><input id="lSenha" type="password" autocomplete="current-password" required placeholder="sua senha"><button type="button" data-ver="lSenha">Mostrar</button></div>
+      </label>
+      <button type="submit" class="btn primario" id="btnEntrar">Entrar</button>
+      <p class="login-info" id="dicaEntrar"></p>
+    </form>
+
+    <form class="login-form" id="formCriar" autocomplete="off">
+      <label>Nome <input id="cNome" required placeholder="Como quer ser chamado"></label>
+      <label>Usuário <input id="cUsuario" autocomplete="username" required placeholder="sem espaços, ex.: pedro"></label>
+      <label>Senha
+        <div class="senha-wrap"><input id="cSenha" type="password" autocomplete="new-password" required placeholder="mínimo 6 caracteres"><button type="button" data-ver="cSenha">Mostrar</button></div>
+        <div class="forca"><div id="barraForca"></div></div>
+      </label>
+      <label>Confirmar senha <input id="cSenha2" type="password" autocomplete="new-password" required></label>
+      <button type="submit" class="btn primario" id="btnCriar">Criar conta</button>
+      <p class="login-info">🔒 Seus dados ficam salvos neste navegador, criptografados com a sua senha. <strong>Não existe recuperação de senha</strong> — se esquecer, os dados não podem ser abertos. Faça backups pela aba Dados.</p>
+    </form>
+  </div>
+</div>
+
 <header>
   <h1>💰 Gestão Financeira Pessoal</h1>
-  <div class="mes-nav">
-    <button class="btn pequeno" id="mesAnterior" aria-label="Mês anterior">◀</button>
-    <span id="mesAtual"></span>
-    <button class="btn pequeno" id="mesProximo" aria-label="Próximo mês">▶</button>
+  <div class="topo-dir">
+    <div class="mes-nav">
+      <button class="btn pequeno" id="mesAnterior" aria-label="Mês anterior">◀</button>
+      <span id="mesAtual"></span>
+      <button class="btn pequeno" id="mesProximo" aria-label="Próximo mês">▶</button>
+    </div>
+    <div class="usuario-topo">
+      <div class="avatar" id="avatar">?</div>
+      <span id="nomeUsuario"></span>
+      <button class="btn pequeno" id="btnSair">Sair</button>
+    </div>
   </div>
 </header>
 
@@ -468,7 +535,7 @@ const brl = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' 
 const $ = id => document.getElementById(id);
 
 /* ===================== Estado ===================== */
-let lancamentos = carregar();
+let lancamentos = [];
 let mesRef = new Date(); mesRef.setDate(1);
 let tipoForm = 'despesa';
 let memoriaVolatil = null; // usado se localStorage não estiver disponível
@@ -486,10 +553,7 @@ function migrarCategorias(lista) {   // separa a antiga categoria "Contas (luz/�
   });
   return lista;
 }
-function salvar() {
-  try { localStorage.setItem(CHAVE, JSON.stringify(lancamentos)); }
-  catch (e) { memoriaVolatil = lancamentos; }
-}
+function salvar() { persistir(); }
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 
 /* ===================== Utilidades de data ===================== */
@@ -839,17 +903,16 @@ $('btnExemplo').addEventListener('click', async () => {
 /* ===================== Investimentos ===================== */
 const CHAVE_INV = 'controleFinanceiro.invest.v1';
 const TIPOS_INV = { acao: 'Ação/FII/ETF', cripto: 'Cripto', moeda: 'Moeda', cdi: 'Renda fixa (CDI)', pre: 'Renda fixa (pré)', manual: 'Outro' };
-let inv = carregarInv();
+let inv = normalizarInv(null);
 let invTimer = null, invAtualizando = false, invUltima = null;
 
-function carregarInv() {
-  try {
-    const d = JSON.parse(localStorage.getItem(CHAVE_INV));
-    if (d && Array.isArray(d.itens)) return { itens: d.itens, config: { cdi: 15, cdiFonte: 'manual', brapiToken: '', auto: true, ...d.config } };
-  } catch (e) {}
-  return { itens: [], config: { cdi: 15, cdiFonte: 'manual', brapiToken: '', auto: true } };
+function normalizarInv(d) {
+  const config = { cdi: 15, cdiFonte: 'manual', brapiToken: '', auto: true };
+  if (d && Array.isArray(d.itens)) return { itens: d.itens, config: { ...config, ...d.config } };
+  return { itens: [], config };
 }
-function salvarInv() { try { localStorage.setItem(CHAVE_INV, JSON.stringify(inv)); } catch (e) {} }
+function lerInvLegado() { try { return normalizarInv(JSON.parse(localStorage.getItem(CHAVE_INV))); } catch (e) { return normalizarInv(null); } }
+function salvarInv() { persistir(); }
 
 function diasUteis(dataISO) {
   if (!dataISO) return 0;
@@ -1334,6 +1397,149 @@ function confirmar(msg) {
   ]}));
 }
 
+/* ===================== Login e criptografia ===================== */
+const CHAVE_USUARIOS = 'gfp.usuarios';
+const prefixoDados = u => 'gfp.dados.' + u;
+let sessao = null;          // { usuario, nome, chave }
+let persistTimer = null;
+
+const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const deB64 = str => Uint8Array.from(atob(str), c => c.charCodeAt(0));
+function lerUsuarios() { try { return JSON.parse(localStorage.getItem(CHAVE_USUARIOS)) || []; } catch (e) { return []; } }
+function gravarUsuarios(l) { localStorage.setItem(CHAVE_USUARIOS, JSON.stringify(l)); }
+
+async function derivarChave(senha, saltB64) {
+  const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(senha), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({ name: 'PBKDF2', salt: deB64(saltB64), iterations: 210000, hash: 'SHA-256' },
+    base, { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+}
+async function cifrar(obj, chave) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, chave, new TextEncoder().encode(JSON.stringify(obj)));
+  return { iv: b64(iv), ct: b64(ct) };
+}
+async function decifrar(pacote, chave) {
+  const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: deB64(pacote.iv) }, chave, deB64(pacote.ct));
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+function persistir() {
+  if (!sessao) return;
+  clearTimeout(persistTimer);
+  persistTimer = setTimeout(async () => {
+    try {
+      const pacote = await cifrar({ lancamentos, inv }, sessao.chave);
+      localStorage.setItem(prefixoDados(sessao.usuario), JSON.stringify(pacote));
+    } catch (e) { toast('Não foi possível salvar neste navegador'); }
+  }, 250);
+}
+
+function erroLogin(msg) { const e = $('loginErro'); e.textContent = msg || ''; e.classList.toggle('show', !!msg); }
+function trocarFormLogin(nome) {
+  document.querySelectorAll('.login-abas button').forEach(b => b.classList.toggle('on', b.dataset.form === nome));
+  $('formEntrar').classList.toggle('on', nome === 'entrar');
+  $('formCriar').classList.toggle('on', nome === 'criar');
+  erroLogin('');
+}
+document.querySelectorAll('.login-abas button').forEach(b => b.addEventListener('click', () => trocarFormLogin(b.dataset.form)));
+document.querySelectorAll('[data-ver]').forEach(b => b.addEventListener('click', () => {
+  const i = $(b.dataset.ver); const ver = i.type === 'password'; i.type = ver ? 'text' : 'password'; b.textContent = ver ? 'Ocultar' : 'Mostrar';
+}));
+$('cSenha').addEventListener('input', () => {
+  const v = $('cSenha').value;
+  let p = 0; if (v.length >= 6) p++; if (v.length >= 10) p++; if (/[A-Z]/.test(v) && /[a-z]/.test(v)) p++; if (/\d/.test(v)) p++; if (/[^A-Za-z0-9]/.test(v)) p++;
+  $('barraForca').style.width = (p / 5 * 100) + '%';
+  $('barraForca').style.background = p <= 2 ? 'var(--despesa)' : p <= 3 ? 'var(--alerta)' : 'var(--receita)';
+});
+
+$('formCriar').addEventListener('submit', async e => {
+  e.preventDefault(); erroLogin('');
+  const nome = $('cNome').value.trim(), usuario = $('cUsuario').value.trim().toLowerCase();
+  const senha = $('cSenha').value, senha2 = $('cSenha2').value;
+  if (!/^[a-z0-9._-]{3,30}$/.test(usuario)) return erroLogin('Usuário deve ter de 3 a 30 caracteres: letras, números, ponto, hífen ou _.');
+  if (senha.length < 6) return erroLogin('A senha precisa ter pelo menos 6 caracteres.');
+  if (senha !== senha2) return erroLogin('As senhas não conferem.');
+  const usuarios = lerUsuarios();
+  if (usuarios.some(u => u.usuario === usuario)) return erroLogin('Este usuário já existe neste navegador.');
+  $('btnCriar').disabled = true; $('btnCriar').textContent = 'Criando...';
+  try {
+    const salt = b64(crypto.getRandomValues(new Uint8Array(16)));
+    const chave = await derivarChave(senha, salt);
+    // A primeira conta herda os dados salvos antes de existir o login
+    let dados = { lancamentos: [], inv: normalizarInv(null) };
+    const legado = carregar();
+    if (!usuarios.length && legado.length) dados = { lancamentos: legado, inv: lerInvLegado() };
+    else if (!usuarios.length) { const li = lerInvLegado(); if (li.itens.length) dados.inv = li; }
+    localStorage.setItem(prefixoDados(usuario), JSON.stringify(await cifrar(dados, chave)));
+    usuarios.push({ usuario, nome, salt, criadoEm: new Date().toISOString() });
+    gravarUsuarios(usuarios);
+    if (usuarios.length === 1) { try { localStorage.removeItem(CHAVE); localStorage.removeItem(CHAVE_INV); } catch (e) {} }
+    await abrirSessao({ usuario, nome }, chave, dados);
+    toast(`Conta criada. Bem-vindo, ${nome}!`);
+  } catch (err) { erroLogin('Não foi possível criar a conta: ' + err.message); }
+  $('btnCriar').disabled = false; $('btnCriar').textContent = 'Criar conta';
+});
+
+$('formEntrar').addEventListener('submit', async e => {
+  e.preventDefault(); erroLogin('');
+  const usuario = $('lUsuario').value.trim().toLowerCase(), senha = $('lSenha').value;
+  const u = lerUsuarios().find(x => x.usuario === usuario);
+  if (!u) return erroLogin('Usuário ou senha incorretos.');
+  $('btnEntrar').disabled = true; $('btnEntrar').textContent = 'Entrando...';
+  try {
+    const chave = await derivarChave(senha, u.salt);
+    const pacote = JSON.parse(localStorage.getItem(prefixoDados(usuario)));
+    const dados = await decifrar(pacote, chave);
+    await abrirSessao(u, chave, dados);
+  } catch (err) { erroLogin('Usuário ou senha incorretos.'); }
+  $('btnEntrar').disabled = false; $('btnEntrar').textContent = 'Entrar';
+});
+
+async function abrirSessao(u, chave, dados) {
+  sessao = { usuario: u.usuario, nome: u.nome, chave };
+  try { sessionStorage.setItem('gfp.sessao', JSON.stringify({ usuario: u.usuario, chave: b64(await crypto.subtle.exportKey('raw', chave)) })); } catch (e) {}
+  lancamentos = migrarCategorias(Array.isArray(dados.lancamentos) ? dados.lancamentos : []);
+  inv = normalizarInv(dados.inv);
+  $('nomeUsuario').textContent = u.nome;
+  $('avatar').textContent = (u.nome || u.usuario).trim()[0].toUpperCase();
+  $('telaLogin').classList.add('oculta');
+  $('formEntrar').reset(); $('formCriar').reset(); $('barraForca').style.width = '0';
+  mesRef = new Date(); mesRef.setDate(1);
+  irAba('painel'); limparForm(); limparFormInv(); render();
+  agendarAtualizacao();
+  if (inv.itens.length) atualizarCotacoes(); else atualizarCDI().then(ok => { if (ok) { persistir(); renderInvest(); } });
+}
+async function sair() {
+  clearTimeout(persistTimer);
+  if (sessao) { try { localStorage.setItem(prefixoDados(sessao.usuario), JSON.stringify(await cifrar({ lancamentos, inv }, sessao.chave))); } catch (e) {} }
+  sessao = null; lancamentos = []; inv = normalizarInv(null); invUltima = null;
+  clearInterval(invTimer);
+  try { sessionStorage.removeItem('gfp.sessao'); } catch (e) {}
+  render();
+  mostrarLogin();
+}
+$('btnSair').addEventListener('click', sair);
+
+function mostrarLogin() {
+  $('telaLogin').classList.remove('oculta');
+  const tem = lerUsuarios().length > 0;
+  trocarFormLogin(tem ? 'entrar' : 'criar');
+  $('dicaEntrar').textContent = tem ? '' : 'Nenhuma conta neste navegador ainda. Clique em "Criar conta".';
+  setTimeout(() => (tem ? $('lUsuario') : $('cNome')).focus(), 50);
+}
+async function iniciarAuth() {
+  // Reabre a sessão ao recarregar a página (até fechar a aba)
+  try {
+    const ss = JSON.parse(sessionStorage.getItem('gfp.sessao'));
+    const u = ss && lerUsuarios().find(x => x.usuario === ss.usuario);
+    if (u) {
+      const chave = await crypto.subtle.importKey('raw', deB64(ss.chave), 'AES-GCM', true, ['encrypt', 'decrypt']);
+      const dados = await decifrar(JSON.parse(localStorage.getItem(prefixoDados(u.usuario))), chave);
+      return abrirSessao(u, chave, dados);
+    }
+  } catch (e) {}
+  mostrarLogin();
+}
+
 /* ===================== Toast ===================== */
 let tTimer;
 function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tTimer); tTimer = setTimeout(() => t.classList.remove('show'), 2200); }
@@ -1342,8 +1548,9 @@ function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add
 limparForm();
 ajustarCamposInv();
 render();
-agendarAtualizacao();
-if (inv.itens.length) atualizarCotacoes(); else atualizarCDI().then(ok => { if (ok) { salvarInv(); renderInvest(); } });
+if (!(window.crypto && crypto.subtle)) {
+  $('telaLogin').querySelector('.login-caixa').innerHTML = '<p>Este navegador não suporta criptografia. Abra o sistema por um endereço https (ex.: GitHub Pages) num navegador atualizado.</p>';
+} else iniciarAuth();
 </script>
 </body>
 </html>
