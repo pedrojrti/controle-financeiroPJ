@@ -77,6 +77,10 @@
   .tipo-toggle button { flex: 1; padding: 9px; border: 0; background: var(--bg); color: var(--muted); font-weight: 700; cursor: pointer; }
   .tipo-toggle button.on[data-tipo="receita"] { background: var(--receita); color: #fff; }
   .tipo-toggle button.on[data-tipo="despesa"] { background: var(--despesa); color: #fff; }
+  .sugestoes { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; align-items: center; }
+  .sugestoes .rot { font-size: 13px; color: var(--muted); font-weight: 600; margin-right: 4px; }
+  .chip { font: inherit; font-size: 13px; padding: 5px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--bg); color: var(--text); cursor: pointer; }
+  .chip:hover { border-color: var(--despesa); color: var(--despesa); }
   .acoes { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
   .btn { font: inherit; font-weight: 600; border: 1px solid var(--border); background: var(--card); color: var(--text); padding: 9px 16px; border-radius: 8px; cursor: pointer; }
   .btn.primario { background: var(--primary); border-color: var(--primary); color: #fff; }
@@ -158,6 +162,7 @@
       <h2 id="tituloForm">Novo lançamento</h2>
       <form id="formLanc">
         <input type="hidden" id="editId">
+        <div class="sugestoes" id="sugestoes"></div>
         <div class="campos">
           <label>Tipo
             <div class="tipo-toggle">
@@ -280,6 +285,17 @@ const CATEGORIAS = {
   receita: ['Salário', 'Freelance / Extra', 'Investimentos', 'Aluguel recebido', 'Reembolso', 'Outras receitas'],
   despesa: ['Moradia', 'Alimentação', 'Transporte', 'Saúde', 'Educação', 'Lazer', 'Contas (luz/água/internet)', 'Cartão de crédito', 'Empréstimos', 'Assinaturas', 'Outras despesas']
 };
+const SUGESTOES = {
+  despesa: [
+    { descricao: 'Energia', categoria: 'Contas (luz/água/internet)', natureza: 'fixa' },
+    { descricao: 'Água', categoria: 'Contas (luz/água/internet)', natureza: 'fixa' },
+    { descricao: 'Aluguel', categoria: 'Moradia', natureza: 'fixa' },
+    { descricao: 'Internet', categoria: 'Contas (luz/água/internet)', natureza: 'fixa' },
+    { descricao: 'Plano de saúde', categoria: 'Saúde', natureza: 'fixa' },
+    { descricao: 'Cartão de crédito', categoria: 'Cartão de crédito', natureza: 'variavel' }
+  ],
+  receita: []
+};
 const CHAVE = 'controleFinanceiro.v1';
 const brl = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 const $ = id => document.getElementById(id);
@@ -332,6 +348,24 @@ function setTipo(t) {
   tipoForm = t;
   document.querySelectorAll('.tipo-toggle button').forEach(b => b.classList.toggle('on', b.dataset.tipo === t));
   preencherCategorias();
+  renderSugestoes();
+}
+function renderSugestoes() {
+  const lista = SUGESTOES[tipoForm] || [];
+  const box = $('sugestoes');
+  box.style.display = lista.length ? '' : 'none';
+  box.innerHTML = lista.length ? '<span class="rot">Sugestões:</span>' : '';
+  lista.forEach(sg => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip'; b.textContent = sg.descricao;
+    b.addEventListener('click', () => {
+      $('fDescricao').value = sg.descricao;
+      $('fCategoria').value = sg.categoria;
+      $('fNatureza').value = sg.natureza;
+      $('fValor').focus();
+    });
+    box.appendChild(b);
+  });
 }
 document.querySelectorAll('.tipo-toggle button').forEach(b => b.addEventListener('click', () => setTipo(b.dataset.tipo)));
 
