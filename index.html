@@ -450,14 +450,14 @@
 /* ===================== Configuração ===================== */
 const CATEGORIAS = {
   receita: ['Salário', 'Freelance / Extra', 'Investimentos', 'Aluguel recebido', 'Reembolso', 'Outras receitas'],
-  despesa: ['Moradia', 'Alimentação', 'Transporte', 'Saúde', 'Educação', 'Lazer', 'Contas (luz/água/internet)', 'Cartão de crédito', 'Empréstimos', 'Assinaturas', 'Outras despesas']
+  despesa: ['Moradia', 'Alimentação', 'Transporte', 'Saúde', 'Educação', 'Lazer', 'Água', 'Luz', 'Internet', 'Cartão de crédito', 'Empréstimos', 'Assinaturas', 'Outras despesas']
 };
 const SUGESTOES = {
   despesa: [
-    { descricao: 'Energia', categoria: 'Contas (luz/água/internet)', natureza: 'fixa' },
-    { descricao: 'Água', categoria: 'Contas (luz/água/internet)', natureza: 'fixa' },
+    { descricao: 'Luz', categoria: 'Luz', natureza: 'fixa' },
+    { descricao: 'Água', categoria: 'Água', natureza: 'fixa' },
     { descricao: 'Aluguel', categoria: 'Moradia', natureza: 'fixa' },
-    { descricao: 'Internet', categoria: 'Contas (luz/água/internet)', natureza: 'fixa' },
+    { descricao: 'Internet', categoria: 'Internet', natureza: 'fixa' },
     { descricao: 'Plano de saúde', categoria: 'Saúde', natureza: 'fixa' },
     { descricao: 'Cartão de crédito', categoria: 'Cartão de crédito', natureza: 'variavel' }
   ],
@@ -474,8 +474,17 @@ let tipoForm = 'despesa';
 let memoriaVolatil = null; // usado se localStorage não estiver disponível
 
 function carregar() {
-  try { return JSON.parse(localStorage.getItem(CHAVE)) || []; }
-  catch (e) { return []; }
+  let dados = [];
+  try { dados = JSON.parse(localStorage.getItem(CHAVE)) || []; } catch (e) {}
+  return migrarCategorias(dados);
+}
+function migrarCategorias(lista) {   // separa a antiga categoria "Contas (luz/água/internet)"
+  lista.forEach(l => {
+    if (l.categoria !== 'Contas (luz/água/internet)') return;
+    const d = (l.descricao || '').toLowerCase();
+    l.categoria = /água|agua|saneamento|compesa|cagece|sabesp/.test(d) ? 'Água' : /internet|wi-?fi|fibra/.test(d) ? 'Internet' : 'Luz';
+  });
+  return lista;
 }
 function salvar() {
   try { localStorage.setItem(CHAVE, JSON.stringify(lancamentos)); }
@@ -795,7 +804,7 @@ $('inputImportar').addEventListener('change', e => {
       if (dados && !Array.isArray(dados) && Array.isArray(dados.investimentos)) { inv.itens = dados.investimentos; salvarInv(); }
       if (dados && !Array.isArray(dados)) dados = dados.lancamentos;
       if (!Array.isArray(dados)) throw 0;
-      lancamentos = dados.filter(l => l && l.tipo && l.data && l.valor).map(l => ({ id: l.id || uid(), ...l }));
+      lancamentos = migrarCategorias(dados.filter(l => l && l.tipo && l.data && l.valor)).map(l => ({ id: l.id || uid(), ...l }));
       salvar(); render(); toast(`${lancamentos.length} lançamentos importados`);
     } catch (err) { toast('Arquivo inválido'); }
   };
@@ -816,7 +825,9 @@ $('btnExemplo').addEventListener('click', async () => {
     if (i % 2 === 0) add('receita', 'Projeto freelance', 1200 * varia(), 'Freelance / Extra', 'variavel', 18, 'pago');
     add('despesa', 'Aluguel', 1800, 'Moradia', 'fixa', 10);
     add('despesa', 'Supermercado', 1100 * varia(), 'Alimentação', 'variavel', 12);
-    add('despesa', 'Energia + Internet', 380 * varia(), 'Contas (luz/água/internet)', 'fixa', 15);
+    add('despesa', 'Luz', 220 * varia(), 'Luz', 'fixa', 15);
+    add('despesa', 'Água', 90 * varia(), 'Água', 'fixa', 15);
+    add('despesa', 'Internet', 120, 'Internet', 'fixa', 15);
     add('despesa', 'Combustível', 450 * varia(), 'Transporte', 'variavel', 20);
     add('despesa', 'Plano de saúde', 520, 'Saúde', 'fixa', 8);
     add('despesa', 'Streaming', 89.9, 'Assinaturas', 'fixa', 22);
