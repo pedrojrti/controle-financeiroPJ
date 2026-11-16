@@ -6,30 +6,21 @@
 <title>Gestão Financeira Pessoal</title>
 <style>
   :root {
-    --bg: #f4f6fa;
-    --card: #ffffff;
-    --text: #1d2433;
-    --muted: #6b7489;
-    --border: #e3e7ef;
-    --primary: #2f5bea;
-    --receita: #12a150;
-    --receita-bg: #e7f7ee;
-    --despesa: #d93a3a;
-    --despesa-bg: #fdecec;
-    --alerta: #c98a00;
-    --alerta-bg: #fff6df;
+    color-scheme: dark;
+    --bg: #11151d;
+    --card: #1a202b;
+    --text: #e8ecf3;
+    --muted: #9aa3b5;
+    --border: #2a3242;
+    --primary: #6d8cff;
+    --receita: #3cc97a;
+    --receita-bg: #173326;
+    --despesa: #ff6b6b;
+    --despesa-bg: #3a1d1f;
+    --alerta: #f0b52b;
+    --alerta-bg: #3a2f14;
     --radius: 12px;
-    --shadow: 0 1px 3px rgba(20, 30, 60, .08);
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #11151d; --card: #1a202b; --text: #e8ecf3; --muted: #9aa3b5;
-      --border: #2a3242; --primary: #6d8cff;
-      --receita: #3cc97a; --receita-bg: #173326;
-      --despesa: #ff6b6b; --despesa-bg: #3a1d1f;
-      --alerta: #f0b52b; --alerta-bg: #3a2f14;
-      --shadow: none;
-    }
+    --shadow: none;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -741,7 +732,7 @@ const CENARIOS = {
   realista: { r: 4, d: 4.5 },
   otimista: { r: 8, d: 3 }
 };
-const PALETA = ['#2f5bea', '#d93a3a', '#12a150', '#c98a00', '#8e44ad', '#16a2b8', '#e67e22', '#7f8c8d', '#e84393', '#00b894', '#6c5ce7', '#b33939'];
+const PALETA = ['#6d8cff', '#ff6b6b', '#3cc97a', '#f0b52b', '#8e44ad', '#16a2b8', '#e67e22', '#7f8c8d', '#e84393', '#00b894', '#6c5ce7', '#b33939'];
 const relEstado = { periodo: 12, grafHist: 'barras', grafProj: 'acumulado', saldoIniEditado: false };
 
 function ligarSeg(id, chave) {
