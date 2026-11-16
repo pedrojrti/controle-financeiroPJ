@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Controle Financeiro Pessoal</title>
+<style>
+  :root {
+    --bg: #f4f6fa;
+    --card: #ffffff;
+    --text: #1d2433;
+    --muted: #6b7489;
+    --border: #e3e7ef;
+    --primary: #2f5bea;
+    --receita: #12a150;
+    --receita-bg: #e7f7ee;
+    --despesa: #d93a3a;
+    --despesa-bg: #fdecec;
+    --alerta: #c98a00;
+    --alerta-bg: #fff6df;
+    --radius: 12px;
+    --shadow: 0 1px 3px rgba(20, 30, 60, .08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #11151d; --card: #1a202b; --text: #e8ecf3; --muted: #9aa3b5;
+      --border: #2a3242; --primary: #6d8cff;
+      --receita: #3cc97a; --receita-bg: #173326;
+      --despesa: #ff6b6b; --despesa-bg: #3a1d1f;
+      --alerta: #f0b52b; --alerta-bg: #3a2f14;
+      --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.45; font-size: 15px;
+  }
+  header {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 14px 18px; position: sticky; top: 0; z-index: 10;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 12px; justify-content: space-between;
+  }
+  header h1 { font-size: 18px; font-weight: 700; }
+  .mes-nav { display: flex; align-items: center; gap: 6px; }
+  .mes-nav span { min-width: 130px; text-align: center; font-weight: 600; text-transform: capitalize; }
+  main { max-width: 1100px; margin: 0 auto; padding: 18px; }
+  nav.abas { display: flex; gap: 6px; margin-bottom: 18px; overflow-x: auto; }
+  nav.abas button {
+    background: transparent; border: 1px solid var(--border); color: var(--muted);
+    padding: 8px 16px; border-radius: 999px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  }
+  nav.abas button.ativa { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .aba { display: none; }
+  .aba.ativa { display: block; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 18px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); }
+  .card .rotulo { color: var(--muted); font-size: 13px; }
+  .card .valor { font-size: 24px; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .card .sub { color: var(--muted); font-size: 12px; margin-top: 4px; }
+  .verde { color: var(--receita); } .vermelho { color: var(--despesa); }
+
+  .painel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; box-shadow: var(--shadow); margin-bottom: 18px; }
+  .painel h2 { font-size: 16px; margin-bottom: 14px; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  @media (max-width: 760px) { .grid-2 { grid-template-columns: 1fr; } }
+
+  form .campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); font-weight: 600; }
+  input, select {
+    font: inherit; color: var(--text); background: var(--bg);
+    border: 1px solid var(--border); border-radius: 8px; padding: 9px 10px;
+  }
+  input:focus, select:focus { outline: 2px solid var(--primary); outline-offset: -1px; }
+  .tipo-toggle { display: flex; gap: 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .tipo-toggle button { flex: 1; padding: 9px; border: 0; background: var(--bg); color: var(--muted); font-weight: 700; cursor: pointer; }
+  .tipo-toggle button.on[data-tipo="receita"] { background: var(--receita); color: #fff; }
+  .tipo-toggle button.on[data-tipo="despesa"] { background: var(--despesa); color: #fff; }
+  .acoes { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .btn { font: inherit; font-weight: 600; border: 1px solid var(--border); background: var(--card); color: var(--text); padding: 9px 16px; border-radius: 8px; cursor: pointer; }
+  .btn.primario { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .btn.pequeno { padding: 4px 10px; font-size: 13px; }
+  .btn:hover { filter: brightness(.96); }
+
+  .filtros { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .filtros select, .filtros input { min-width: 140px; }
+  .tabela-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+  .tag.receita { background: var(--receita-bg); color: var(--receita); }
+  .tag.despesa { background: var(--despesa-bg); color: var(--despesa); }
+  .tag.pago { background: var(--receita-bg); color: var(--receita); cursor: pointer; }
+  .tag.aberto { background: var(--alerta-bg); color: var(--alerta); cursor: pointer; }
+  .tag.atrasado { background: var(--despesa-bg); color: var(--despesa); cursor: pointer; }
+  .vazio { text-align: center; color: var(--muted); padding: 30px 10px; }
+
+  .grafico svg { width: 100%; height: auto; display: block; }
+  .legenda { display: flex; gap: 16px; font-size: 13px; color: var(--muted); margin-top: 8px; flex-wrap: wrap; }
+  .legenda i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
+
+  .barra-cat { margin-bottom: 10px; }
+  .barra-cat .topo { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+  .barra-cat .trilho { background: var(--bg); border-radius: 6px; height: 10px; overflow: hidden; }
+  .barra-cat .preenche { height: 100%; border-radius: 6px; background: var(--despesa); }
+  .barra-cat .preenche.rec { background: var(--receita); }
+
+  .comprometido { margin-top: 6px; }
+  .comprometido .trilho { background: var(--bg); height: 12px; border-radius: 6px; overflow: hidden; }
+  .comprometido .preenche { height: 100%; transition: width .3s; }
+
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--card); padding: 10px 18px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 50; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>💰 Controle Financeiro</h1>
+  <div class="mes-nav">
+    <button class="btn pequeno" id="mesAnterior" aria-label="Mês anterior">◀</button>
+    <span id="mesAtual"></span>
+    <button class="btn pequeno" id="mesProximo" aria-label="Próximo mês">▶</button>
+  </div>
+</header>
+
+<main>
+  <nav class="abas">
+    <button data-aba="painel" class="ativa">Painel</button>
+    <button data-aba="lancamentos">Lançamentos</button>
+    <button data-aba="comparativo">Comparativo</button>
+    <button data-aba="dados">Dados</button>
+  </nav>
+
+  <!-- ============ PAINEL ============ -->
+  <section id="aba-painel" class="aba ativa">
+    <div class="cards">
+      <div class="card"><div class="rotulo">Receitas do mês</div><div class="valor verde" id="cReceitas">R$ 0,00</div><div class="sub" id="cReceitasSub"></div></div>
+      <div class="card"><div class="rotulo">Despesas do mês</div><div class="valor vermelho" id="cDespesas">R$ 0,00</div><div class="sub" id="cDespesasSub"></div></div>
+      <div class="card"><div class="rotulo">Saldo do mês</div><div class="valor" id="cSaldo">R$ 0,00</div><div class="sub" id="cSaldoSub"></div></div>
+      <div class="card">
+        <div class="rotulo">Renda comprometida</div>
+        <div class="valor" id="cComprometido">0%</div>
+        <div class="comprometido"><div class="trilho"><div class="preenche" id="barraComprometido"></div></div></div>
+      </div>
+    </div>
+
+    <div class="painel">
+      <h2 id="tituloForm">Novo lançamento</h2>
+      <form id="formLanc">
+        <input type="hidden" id="editId">
+        <div class="campos">
+          <label>Tipo
+            <div class="tipo-toggle">
+              <button type="button" data-tipo="receita">Receita</button>
+              <button type="button" data-tipo="despesa" class="on">Despesa</button>
+            </div>
+          </label>
+          <label>Descrição <input id="fDescricao" required placeholder="Ex.: Salário, Aluguel"></label>
+          <label>Valor (R$) <input id="fValor" type="number" step="0.01" min="0.01" required placeholder="0,00"></label>
+          <label>Categoria <select id="fCategoria"></select></label>
+          <label>Natureza
+            <select id="fNatureza"><option value="fixa">Fixa</option><option value="variavel">Variável</option></select>
+          </label>
+          <label>Vencimento / Data <input id="fData" type="date" required></label>
+          <label>Status
+            <select id="fStatus"><option value="aberto">Em aberto</option><option value="pago">Pago / Recebido</option></select>
+          </label>
+          <label>Repetir por (meses) <input id="fRepetir" type="number" min="1" max="60" value="1"></label>
+        </div>
+        <div class="acoes">
+          <button type="submit" class="btn primario" id="btnSalvar">Adicionar</button>
+          <button type="button" class="btn" id="btnCancelar" style="display:none">Cancelar edição</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="grid-2">
+      <div class="painel">
+        <h2>Despesas por categoria</h2>
+        <div id="painelCategorias"></div>
+      </div>
+      <div class="painel">
+        <h2>Próximos vencimentos em aberto</h2>
+        <div id="painelVencimentos"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ LANÇAMENTOS ============ -->
+  <section id="aba-lancamentos" class="aba">
+    <div class="painel">
+      <h2>Lançamentos do mês</h2>
+      <div class="filtros">
+        <select id="filtroTipo"><option value="">Todos os tipos</option><option value="receita">Receitas</option><option value="despesa">Despesas</option></select>
+        <select id="filtroStatus"><option value="">Todos os status</option><option value="pago">Pagos</option><option value="aberto">Em aberto</option></select>
+        <select id="filtroCategoria"><option value="">Todas as categorias</option></select>
+        <input id="filtroBusca" placeholder="Buscar descrição...">
+      </div>
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr><th>Data</th><th>Descrição</th><th>Tipo</th><th>Categoria</th><th>Natureza</th><th>Status</th><th class="num">Valor</th><th></th></tr></thead>
+          <tbody id="tabelaLanc"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ COMPARATIVO ============ -->
+  <section id="aba-comparativo" class="aba">
+    <div class="painel grafico">
+      <h2>Receitas × Despesas — últimos 6 meses</h2>
+      <div id="graficoBarras"></div>
+      <div class="legenda">
+        <span><i style="background:var(--receita)"></i>Receitas</span>
+        <span><i style="background:var(--despesa)"></i>Despesas</span>
+        <span><i style="background:var(--primary)"></i>Saldo</span>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="painel">
+        <h2>Receitas por categoria (mês)</h2>
+        <div id="compReceitas"></div>
+      </div>
+      <div class="painel">
+        <h2>Fixas × Variáveis (despesas do mês)</h2>
+        <div id="compNatureza"></div>
+      </div>
+    </div>
+
+    <div class="painel">
+      <h2>Resumo mensal</h2>
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr><th>Mês</th><th class="num">Receitas</th><th class="num">Despesas</th><th class="num">Saldo</th><th class="num">% gasto</th></tr></thead>
+          <tbody id="tabelaResumo"></tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ DADOS ============ -->
+  <section id="aba-dados" class="aba">
+    <div class="painel">
+      <h2>Backup dos dados</h2>
+      <p style="color:var(--muted);margin-bottom:14px">Os lançamentos ficam salvos neste navegador. Exporte um backup de vez em quando ou para levar os dados para outro aparelho.</p>
+      <div class="acoes">
+        <button class="btn primario" id="btnExportar">Exportar (JSON)</button>
+        <button class="btn" id="btnExportarCSV">Exportar planilha (CSV)</button>
+        <label class="btn" style="flex-direction:row;color:var(--text)">Importar JSON<input type="file" id="inputImportar" accept=".json" hidden></label>
+        <button class="btn" id="btnExemplo">Carregar dados de exemplo</button>
+        <button class="btn" id="btnLimpar" style="color:var(--despesa)">Apagar tudo</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===================== Configuração ===================== */
+const CATEGORIAS = {
+  receita: ['Salário', 'Freelance / Extra', 'Investimentos', 'Aluguel recebido', 'Reembolso', 'Outras receitas'],
+  despesa: ['Moradia', 'Alimentação', 'Transporte', 'Saúde', 'Educação', 'Lazer', 'Contas (luz/água/internet)', 'Cartão de crédito', 'Empréstimos', 'Assinaturas', 'Outras despesas']
+};
+const CHAVE = 'controleFinanceiro.v1';
+const brl = v => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const $ = id => document.getElementById(id);
+
+/* ===================== Estado ===================== */
+let lancamentos = carregar();
+let mesRef = new Date(); mesRef.setDate(1);
+let tipoForm = 'despesa';
+let memoriaVolatil = null; // usado se localStorage não estiver disponível
+
+function carregar() {
+  try { return JSON.parse(localStorage.getItem(CHAVE)) || []; }
+  catch (e) { return []; }
+}
+function salvar() {
+  try { localStorage.setItem(CHAVE, JSON.stringify(lancamentos)); }
+  catch (e) { memoriaVolatil = lancamentos; }
+}
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+/* ===================== Utilidades de data ===================== */
+const chaveMes = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+const nomeMes = (d, curto) => d.toLocaleDateString('pt-BR', curto ? { month: 'short', year: '2-digit' } : { month: 'long', year: 'numeric' });
+const fmtData = s => s ? s.split('-').reverse().join('/') : '';
+const hojeISO = () => new Date().toISOString().slice(0, 10);
+function somaMeses(iso, n) {
+  const [a, m, d] = iso.split('-').map(Number);
+  const ultimoDia = new Date(a, m - 1 + n + 1, 0).getDate();
+  const nova = new Date(a, m - 1 + n, Math.min(d, ultimoDia));
+  return nova.toISOString().slice(0, 10);
+}
+const doMes = (chave) => lancamentos.filter(l => l.data.slice(0, 7) === chave);
+function totais(lista) {
+  const r = lista.filter(l => l.tipo === 'receita').reduce((s, l) => s + l.valor, 0);
+  const d = lista.filter(l => l.tipo === 'despesa').reduce((s, l) => s + l.valor, 0);
+  return { receitas: r, despesas: d, saldo: r - d };
+}
+function statusReal(l) {
+  if (l.status === 'pago') return 'pago';
+  return l.data < hojeISO() ? 'atrasado' : 'aberto';
+}
+
+/* ===================== Formulário ===================== */
+function preencherCategorias() {
+  $('fCategoria').innerHTML = CATEGORIAS[tipoForm].map(c => `<option>${c}</option>`).join('');
+  const todas = [...CATEGORIAS.receita, ...CATEGORIAS.despesa];
+  $('filtroCategoria').innerHTML = '<option value="">Todas as categorias</option>' + todas.map(c => `<option>${c}</option>`).join('');
+}
+function setTipo(t) {
+  tipoForm = t;
+  document.querySelectorAll('.tipo-toggle button').forEach(b => b.classList.toggle('on', b.dataset.tipo === t));
+  preencherCategorias();
+}
+document.querySelectorAll('.tipo-toggle button').forEach(b => b.addEventListener('click', () => setTipo(b.dataset.tipo)));
+
+$('formLanc').addEventListener('submit', e => {
+  e.preventDefault();
+  const base = {
+    tipo: tipoForm,
+    descricao: $('fDescricao').value.trim(),
+    valor: Math.round(parseFloat($('fValor').value) * 100) / 100,
+    categoria: $('fCategoria').value,
+    natureza: $('fNatureza').value,
+    data: $('fData').value,
+    status: $('fStatus').value
+  };
+  if (!base.descricao || !(base.valor > 0) || !base.data) return;
+
+  const editId = $('editId').value;
+  if (editId) {
+    const i = lancamentos.findIndex(l => l.id === editId);
+    if (i >= 0) lancamentos[i] = { ...lancamentos[i], ...base };
+    toast('Lançamento atualizado');
+  } else {
+    const n = Math.max(1, Math.min(60, parseInt($('fRepetir').value) || 1));
+    for (let k = 0; k < n; k++) {
+      lancamentos.push({ ...base, id: uid(), data: somaMeses(base.data, k), status: k === 0 ? base.status : 'aberto',
+        descricao: n > 1 ? `${base.descricao} (${k + 1}/${n})` : base.descricao });
+    }
+    toast(n > 1 ? `${n} lançamentos criados` : 'Lançamento adicionado');
+  }
+  salvar(); limparForm(); render();
+});
+
+function limparForm() {
+  $('formLanc').reset(); $('editId').value = '';
+  $('fData').value = hojeISO(); $('fRepetir').value = 1; $('fRepetir').disabled = false;
+  $('tituloForm').textContent = 'Novo lançamento';
+  $('btnSalvar').textContent = 'Adicionar';
+  $('btnCancelar').style.display = 'none';
+  setTipo(tipoForm);
+}
+$('btnCancelar').addEventListener('click', limparForm);
+
+function editar(id) {
+  const l = lancamentos.find(x => x.id === id); if (!l) return;
+  irAba('painel');
+  setTipo(l.tipo);
+  $('editId').value = l.id; $('fDescricao').value = l.descricao; $('fValor').value = l.valor;
+  $('fCategoria').value = l.categoria; $('fNatureza').value = l.natureza;
+  $('fData').value = l.data; $('fStatus').value = l.status;
+  $('fRepetir').value = 1; $('fRepetir').disabled = true;
+  $('tituloForm').textContent = 'Editar lançamento';
+  $('btnSalvar').textContent = 'Salvar alterações';
+  $('btnCancelar').style.display = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function excluir(id) {
+  if (!confirm('Excluir este lançamento?')) return;
+  lancamentos = lancamentos.filter(l => l.id !== id); salvar(); render(); toast('Lançamento excluído');
+}
+function alternarStatus(id) {
+  const l = lancamentos.find(x => x.id === id); if (!l) return;
+  l.status = l.status === 'pago' ? 'aberto' : 'pago'; salvar(); render();
+}
+
+/* ===================== Renderização ===================== */
+function render() {
+  $('mesAtual').textContent = nomeMes(mesRef);
+  renderPainel(); renderTabela(); renderComparativo();
+}
+
+function barrasCategoria(lista, classeExtra = '') {
+  const porCat = {};
+  lista.forEach(l => porCat[l.categoria] = (porCat[l.categoria] || 0) + l.valor);
+  const itens = Object.entries(porCat).sort((a, b) => b[1] - a[1]);
+  if (!itens.length) return '<div class="vazio">Nenhum lançamento neste mês.</div>';
+  const total = itens.reduce((s, [, v]) => s + v, 0);
+  const max = itens[0][1];
+  return itens.map(([c, v]) => `
+    <div class="barra-cat">
+      <div class="topo"><span>${c}</span><span>${brl(v)} · ${(v / total * 100).toFixed(0)}%</span></div>
+      <div class="trilho"><div class="preenche ${classeExtra}" style="width:${v / max * 100}%"></div></div>
+    </div>`).join('');
+}
+
+function renderPainel() {
+  const lista = doMes(chaveMes(mesRef));
+  const t = totais(lista);
+  const recRecebidas = lista.filter(l => l.tipo === 'receita' && l.status === 'pago').reduce((s, l) => s + l.valor, 0);
+  const despPagas = lista.filter(l => l.tipo === 'despesa' && l.status === 'pago').reduce((s, l) => s + l.valor, 0);
+
+  $('cReceitas').textContent = brl(t.receitas);
+  $('cReceitasSub').textContent = `Recebido: ${brl(recRecebidas)}`;
+  $('cDespesas').textContent = brl(t.despesas);
+  $('cDespesasSub').textContent = `Pago: ${brl(despPagas)} · Falta: ${brl(t.despesas - despPagas)}`;
+  $('cSaldo').textContent = brl(t.saldo);
+  $('cSaldo').className = 'valor ' + (t.saldo >= 0 ? 'verde' : 'vermelho');
+  $('cSaldoSub').textContent = `Em caixa agora: ${brl(recRecebidas - despPagas)}`;
+
+  const pct = t.receitas > 0 ? t.despesas / t.receitas * 100 : (t.despesas > 0 ? 100 : 0);
+  $('cComprometido').textContent = pct.toFixed(0) + '%';
+  const cor = pct < 70 ? 'var(--receita)' : pct <= 100 ? 'var(--alerta)' : 'var(--despesa)';
+  $('cComprometido').style.color = cor;
+  $('barraComprometido').style.width = Math.min(pct, 100) + '%';
+  $('barraComprometido').style.background = cor;
+
+  $('painelCategorias').innerHTML = barrasCategoria(lista.filter(l => l.tipo === 'despesa'));
+
+  const abertos = lancamentos.filter(l => l.tipo === 'despesa' && l.status !== 'pago')
+    .sort((a, b) => a.data.localeCompare(b.data)).slice(0, 6);
+  $('painelVencimentos').innerHTML = abertos.length ? `<table><tbody>${abertos.map(l => {
+    const s = statusReal(l);
+    return `<tr><td>${fmtData(l.data)}</td><td>${l.descricao}</td>
+      <td><span class="tag ${s}" onclick="alternarStatus('${l.id}')" title="Marcar como pago">${s === 'atrasado' ? 'Atrasado' : 'Em aberto'}</span></td>
+      <td class="num">${brl(l.valor)}</td></tr>`;
+  }).join('')}</tbody></table>` : '<div class="vazio">Nada em aberto. 🎉</div>';
+}
+
+function renderTabela() {
+  const ft = $('filtroTipo').value, fs = $('filtroStatus').value, fc = $('filtroCategoria').value;
+  const fb = $('filtroBusca').value.toLowerCase();
+  const lista = doMes(chaveMes(mesRef))
+    .filter(l => (!ft || l.tipo === ft) && (!fs || l.status === fs) && (!fc || l.categoria === fc) && (!fb || l.descricao.toLowerCase().includes(fb)))
+    .sort((a, b) => a.data.localeCompare(b.data));
+
+  if (!lista.length) { $('tabelaLanc').innerHTML = '<tr><td colspan="8" class="vazio">Nenhum lançamento encontrado.</td></tr>'; return; }
+  const t = totais(lista);
+  $('tabelaLanc').innerHTML = lista.map(l => {
+    const s = statusReal(l);
+    const rotuloStatus = s === 'pago' ? (l.tipo === 'receita' ? 'Recebido' : 'Pago') : s === 'atrasado' ? 'Atrasado' : 'Em aberto';
+    return `<tr>
+      <td>${fmtData(l.data)}</td>
+      <td>${l.descricao}</td>
+      <td><span class="tag ${l.tipo}">${l.tipo === 'receita' ? 'Receita' : 'Despesa'}</span></td>
+      <td>${l.categoria}</td>
+      <td>${l.natureza === 'fixa' ? 'Fixa' : 'Variável'}</td>
+      <td><span class="tag ${s}" onclick="alternarStatus('${l.id}')" title="Clique para alternar">${rotuloStatus}</span></td>
+      <td class="num ${l.tipo === 'receita' ? 'verde' : 'vermelho'}">${l.tipo === 'receita' ? '+' : '−'} ${brl(l.valor)}</td>
+      <td><button class="btn pequeno" onclick="editar('${l.id}')">Editar</button>
+          <button class="btn pequeno" onclick="excluir('${l.id}')">Excluir</button></td>
+    </tr>`;
+  }).join('') + `<tr><td colspan="6"><strong>Saldo do filtro</strong></td>
+    <td class="num ${t.saldo >= 0 ? 'verde' : 'vermelho'}"><strong>${brl(t.saldo)}</strong></td><td></td></tr>`;
+}
+['filtroTipo', 'filtroStatus', 'filtroCategoria'].forEach(id => $(id).addEventListener('change', renderTabela));
+$('filtroBusca').addEventListener('input', renderTabela);
+
+function ultimosMeses(n) {
+  const meses = [];
+  for (let i = n - 1; i >= 0; i--) { const d = new Date(mesRef); d.setMonth(d.getMonth() - i); meses.push(d); }
+  return meses;
+}
+
+function renderComparativo() {
+  const meses = ultimosMeses(6);
+  const dados = meses.map(d => ({ d, ...totais(doMes(chaveMes(d))) }));
+
+  // ---- Gráfico de barras (SVG puro) ----
+  const W = 700, H = 300, mE = 70, mD = 16, mT = 16, mB = 34;
+  const max = Math.max(1, ...dados.map(x => Math.max(x.receitas, x.despesas)));
+  const min = Math.min(0, ...dados.map(x => x.saldo));
+  const escala = v => mT + (max - v) / (max - min) * (H - mT - mB);
+  const larguraGrupo = (W - mE - mD) / dados.length;
+  const bw = Math.min(28, larguraGrupo / 3);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Gráfico de receitas e despesas">`;
+  for (let i = 0; i <= 4; i++) {
+    const v = min + (max - min) * i / 4, y = escala(v);
+    svg += `<line x1="${mE}" x2="${W - mD}" y1="${y}" y2="${y}" stroke="var(--border)"/>
+            <text x="${mE - 8}" y="${y + 4}" text-anchor="end" font-size="11" fill="var(--muted)">${abrev(v)}</text>`;
+  }
+  const pontos = [];
+  dados.forEach((x, i) => {
+    const cx = mE + larguraGrupo * i + larguraGrupo / 2;
+    const y0 = escala(0);
+    svg += `<rect x="${cx - bw - 2}" y="${escala(x.receitas)}" width="${bw}" height="${y0 - escala(x.receitas)}" rx="3" fill="var(--receita)"><title>Receitas: ${brl(x.receitas)}</title></rect>
+            <rect x="${cx + 2}" y="${escala(x.despesas)}" width="${bw}" height="${y0 - escala(x.despesas)}" rx="3" fill="var(--despesa)"><title>Despesas: ${brl(x.despesas)}</title></rect>
+            <text x="${cx}" y="${H - 12}" text-anchor="middle" font-size="12" fill="var(--muted)">${nomeMes(x.d, true)}</text>`;
+    pontos.push([cx, escala(x.saldo), x.saldo]);
+  });
+  svg += `<polyline points="${pontos.map(p => p[0] + ',' + p[1]).join(' ')}" fill="none" stroke="var(--primary)" stroke-width="2.5"/>`;
+  pontos.forEach(p => svg += `<circle cx="${p[0]}" cy="${p[1]}" r="4" fill="var(--primary)"><title>Saldo: ${brl(p[2])}</title></circle>`);
+  svg += '</svg>';
+  $('graficoBarras').innerHTML = svg;
+
+  // ---- Por categoria / natureza ----
+  const lista = doMes(chaveMes(mesRef));
+  $('compReceitas').innerHTML = barrasCategoria(lista.filter(l => l.tipo === 'receita'), 'rec');
+  const desp = lista.filter(l => l.tipo === 'despesa');
+  const fixas = desp.filter(l => l.natureza === 'fixa').reduce((s, l) => s + l.valor, 0);
+  const variaveis = desp.filter(l => l.natureza === 'variavel').reduce((s, l) => s + l.valor, 0);
+  const tot = fixas + variaveis;
+  $('compNatureza').innerHTML = tot ? [['Fixas', fixas], ['Variáveis', variaveis]].map(([n, v]) => `
+    <div class="barra-cat"><div class="topo"><span>${n}</span><span>${brl(v)} · ${(v / tot * 100).toFixed(0)}%</span></div>
+    <div class="trilho"><div class="preenche" style="width:${v / tot * 100}%"></div></div></div>`).join('')
+    : '<div class="vazio">Nenhuma despesa neste mês.</div>';
+
+  // ---- Tabela resumo ----
+  $('tabelaResumo').innerHTML = dados.slice().reverse().map(x => `<tr>
+    <td style="text-transform:capitalize">${nomeMes(x.d)}</td>
+    <td class="num verde">${brl(x.receitas)}</td>
+    <td class="num vermelho">${brl(x.despesas)}</td>
+    <td class="num ${x.saldo >= 0 ? 'verde' : 'vermelho'}">${brl(x.saldo)}</td>
+    <td class="num">${x.receitas ? (x.despesas / x.receitas * 100).toFixed(0) + '%' : '—'}</td></tr>`).join('');
+}
+function abrev(v) {
+  const a = Math.abs(v);
+  if (a >= 1e6) return 'R$ ' + (v / 1e6).toFixed(1) + 'M';
+  if (a >= 1e3) return 'R$ ' + (v / 1e3).toFixed(1) + 'k';
+  return 'R$ ' + v.toFixed(0);
+}
+
+/* ===================== Navegação ===================== */
+function irAba(nome) {
+  document.querySelectorAll('nav.abas button').forEach(b => b.classList.toggle('ativa', b.dataset.aba === nome));
+  document.querySelectorAll('.aba').forEach(s => s.classList.toggle('ativa', s.id === 'aba-' + nome));
+}
+document.querySelectorAll('nav.abas button').forEach(b => b.addEventListener('click', () => irAba(b.dataset.aba)));
+$('mesAnterior').addEventListener('click', () => { mesRef.setMonth(mesRef.getMonth() - 1); render(); });
+$('mesProximo').addEventListener('click', () => { mesRef.setMonth(mesRef.getMonth() + 1); render(); });
+
+/* ===================== Dados: backup ===================== */
+function baixar(nome, conteudo, tipo) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([conteudo], { type: tipo }));
+  a.download = nome; a.click(); URL.revokeObjectURL(a.href);
+}
+$('btnExportar').addEventListener('click', () => baixar(`financeiro-${hojeISO()}.json`, JSON.stringify(lancamentos, null, 2), 'application/json'));
+$('btnExportarCSV').addEventListener('click', () => {
+  const cab = 'Data;Descrição;Tipo;Categoria;Natureza;Status;Valor\n';
+  const linhas = lancamentos.slice().sort((a, b) => a.data.localeCompare(b.data))
+    .map(l => [fmtData(l.data), `"${l.descricao.replace(/"/g, '""')}"`, l.tipo, l.categoria, l.natureza, l.status, l.valor.toFixed(2).replace('.', ',')].join(';'));
+  baixar(`financeiro-${hojeISO()}.csv`, '﻿' + cab + linhas.join('\n'), 'text/csv');
+});
+$('inputImportar').addEventListener('change', e => {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = () => {
+    try {
+      const dados = JSON.parse(r.result);
+      if (!Array.isArray(dados)) throw 0;
+      lancamentos = dados.filter(l => l && l.tipo && l.data && l.valor).map(l => ({ id: l.id || uid(), ...l }));
+      salvar(); render(); toast(`${lancamentos.length} lançamentos importados`);
+    } catch (err) { toast('Arquivo inválido'); }
+  };
+  r.readAsText(f); e.target.value = '';
+});
+$('btnLimpar').addEventListener('click', () => {
+  if (confirm('Apagar TODOS os lançamentos? Essa ação não pode ser desfeita.')) { lancamentos = []; salvar(); render(); toast('Dados apagados'); }
+});
+$('btnExemplo').addEventListener('click', () => {
+  if (lancamentos.length && !confirm('Isso vai adicionar lançamentos de exemplo aos seus dados. Continuar?')) return;
+  const base = new Date(); base.setDate(1);
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(base); d.setMonth(d.getMonth() - i);
+    const p = chaveMes(d), pago = i > 0 ? 'pago' : 'aberto', varia = () => 0.85 + Math.random() * 0.3;
+    const add = (tipo, descricao, valor, categoria, natureza, dia, status = pago) =>
+      lancamentos.push({ id: uid(), tipo, descricao, valor: Math.round(valor * 100) / 100, categoria, natureza, data: `${p}-${String(dia).padStart(2, '0')}`, status });
+    add('receita', 'Salário', 6500, 'Salário', 'fixa', 5, 'pago');
+    if (i % 2 === 0) add('receita', 'Projeto freelance', 1200 * varia(), 'Freelance / Extra', 'variavel', 18, 'pago');
+    add('despesa', 'Aluguel', 1800, 'Moradia', 'fixa', 10);
+    add('despesa', 'Supermercado', 1100 * varia(), 'Alimentação', 'variavel', 12);
+    add('despesa', 'Energia + Internet', 380 * varia(), 'Contas (luz/água/internet)', 'fixa', 15);
+    add('despesa', 'Combustível', 450 * varia(), 'Transporte', 'variavel', 20);
+    add('despesa', 'Plano de saúde', 520, 'Saúde', 'fixa', 8);
+    add('despesa', 'Streaming', 89.9, 'Assinaturas', 'fixa', 22);
+    add('despesa', 'Restaurantes', 400 * varia(), 'Lazer', 'variavel', 25);
+  }
+  salvar(); render(); toast('Dados de exemplo carregados');
+});
+
+/* ===================== Toast ===================== */
+let tTimer;
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(tTimer); tTimer = setTimeout(() => t.classList.remove('show'), 2200); }
+
+/* ===================== Início ===================== */
+limparForm();
+render();
+</script>
+</body>
+</html>
