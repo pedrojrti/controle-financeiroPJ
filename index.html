@@ -127,6 +127,16 @@
   .rosca-leg i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
   .nota { font-size: 12px; color: var(--muted); margin-top: 10px; }
   details summary { cursor: pointer; font-weight: 600; margin-top: 14px; color: var(--primary); }
+  .tag.vivo { background: var(--receita-bg); color: var(--receita); }
+  .tag.calc { background: rgba(109,140,255,.15); color: var(--primary); }
+  .tag.manual { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+  .tag.erro { background: var(--despesa-bg); color: var(--despesa); }
+  .tag.carregando { background: var(--alerta-bg); color: var(--alerta); }
+  .aviso { background: var(--alerta-bg); color: var(--alerta); border-radius: 8px; padding: 10px 12px; font-size: 13px; margin-bottom: 14px; display: none; }
+  .aviso.show { display: block; }
+  .ponto-vivo { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--receita); margin-right: 6px; animation: pulsa 1.6s infinite; }
+  @keyframes pulsa { 0%,100% { opacity: 1 } 50% { opacity: .3 } }
+  .campo-oculto { display: none !important; }
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--card); padding: 10px 18px; border-radius: 8px; font-size: 14px; opacity: 0; transition: opacity .25s; pointer-events: none; z-index: 50; }
   .toast.show { opacity: 1; }
 </style>
@@ -147,6 +157,7 @@
     <button data-aba="painel" class="ativa">Painel</button>
     <button data-aba="lancamentos">Lançamentos</button>
     <button data-aba="comparativo">Comparativo</button>
+    <button data-aba="investimentos">Investimentos</button>
     <button data-aba="relatorio">Relatório</button>
     <button data-aba="dados">Dados</button>
   </nav>
@@ -162,6 +173,7 @@
         <div class="valor" id="cComprometido">0%</div>
         <div class="comprometido"><div class="trilho"><div class="preenche" id="barraComprometido"></div></div></div>
       </div>
+      <div class="card"><div class="rotulo">Investimentos (valor atual)</div><div class="valor" id="cInvest">R$ 0,00</div><div class="sub" id="cInvestSub"></div></div>
     </div>
 
     <div class="painel">
@@ -256,6 +268,85 @@
           <thead><tr><th>Mês</th><th class="num">Receitas</th><th class="num">Despesas</th><th class="num">Saldo</th><th class="num">% gasto</th></tr></thead>
           <tbody id="tabelaResumo"></tbody>
         </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ INVESTIMENTOS ============ -->
+  <section id="aba-investimentos" class="aba">
+    <div class="aviso" id="avisoInvest"></div>
+    <div class="cards">
+      <div class="card"><div class="rotulo">Total investido</div><div class="valor" id="iInvestido">R$ 0,00</div><div class="sub" id="iQtd"></div></div>
+      <div class="card"><div class="rotulo">Valor atual</div><div class="valor" id="iAtual">R$ 0,00</div><div class="sub" id="iHora"></div></div>
+      <div class="card"><div class="rotulo">Rentabilidade</div><div class="valor" id="iRent">R$ 0,00</div><div class="sub" id="iRentPct"></div></div>
+      <div class="card"><div class="rotulo">Variação hoje (renda variável)</div><div class="valor" id="iHoje">—</div><div class="sub">Ações, FIIs, cripto e moedas</div></div>
+    </div>
+
+    <div class="painel">
+      <div class="cabecalho-painel">
+        <h2>Minha carteira</h2>
+        <div class="acoes" style="margin:0">
+          <button class="btn" id="btnAtualizarInv">↻ Atualizar agora</button>
+        </div>
+      </div>
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr><th>Ativo</th><th>Tipo</th><th class="num">Qtd.</th><th class="num">Preço médio / Aplicado</th><th class="num">Cotação / Taxa</th><th class="num">Dia</th><th class="num">Investido</th><th class="num">Atual</th><th class="num">Rentab.</th><th>Fonte</th><th></th></tr></thead>
+          <tbody id="tabelaInv"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="painel">
+      <h2 id="tituloFormInv">Cadastrar investimento</h2>
+      <form id="formInv">
+        <input type="hidden" id="invEditId">
+        <div class="campos">
+          <label>Tipo
+            <select id="invTipo">
+              <option value="acao">Ação / FII / ETF (B3)</option>
+              <option value="cripto">Criptomoeda</option>
+              <option value="moeda">Moeda estrangeira</option>
+              <option value="cdi">Renda fixa — % do CDI</option>
+              <option value="pre">Renda fixa — prefixado</option>
+              <option value="manual">Outro (valor manual)</option>
+            </select>
+          </label>
+          <label data-tipos="acao cripto moeda">Código <input id="invTicker" placeholder="Ex.: PETR4, BTC, USD"></label>
+          <label>Nome / descrição <input id="invNome" placeholder="Ex.: Petrobras, CDB Banco X"></label>
+          <label data-tipos="acao cripto moeda">Quantidade <input id="invQtd" type="number" step="any" min="0"></label>
+          <label data-tipos="acao cripto moeda">Preço médio (R$) <input id="invPM" type="number" step="any" min="0"></label>
+          <label data-tipos="cdi pre manual">Valor aplicado (R$) <input id="invAplicado" type="number" step="0.01" min="0"></label>
+          <label data-tipos="cdi pre"><span id="rotTaxa">Taxa</span> <input id="invTaxa" type="number" step="0.01" min="0"></label>
+          <label data-tipos="cdi pre manual acao cripto moeda">Data da aplicação <input id="invData" type="date"></label>
+          <label data-tipos="manual">Valor atual (R$) <input id="invAtualManual" type="number" step="0.01" min="0"></label>
+        </div>
+        <p class="nota" id="dicaInv"></p>
+        <div class="acoes">
+          <button type="submit" class="btn primario" id="btnSalvarInv">Adicionar investimento</button>
+          <button type="button" class="btn" id="btnCancelarInv" style="display:none">Cancelar edição</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="grid-2">
+      <div class="painel">
+        <h2>Distribuição da carteira</h2>
+        <div id="grafInv"></div>
+      </div>
+      <div class="painel">
+        <h2>Configurações de cotação</h2>
+        <div class="campos" style="display:grid;gap:12px">
+          <label>Token da brapi (para ações além de PETR4, VALE3, ITUB4 e MGLU3)
+            <input id="cfgToken" type="password" placeholder="Cole aqui seu token gratuito" autocomplete="off">
+          </label>
+          <label>Taxa CDI ao ano (%) <input id="cfgCDI" type="number" step="0.01" min="0"></label>
+          <label style="flex-direction:row;align-items:center;gap:8px;color:var(--text)">
+            <input type="checkbox" id="cfgAuto" checked> Atualizar automaticamente a cada 60 segundos
+          </label>
+        </div>
+        <p class="nota" id="cdiFonte"></p>
+        <p class="nota">Token gratuito em <a href="https://brapi.dev/dashboard" target="_blank" rel="noopener" style="color:var(--primary)">brapi.dev/dashboard</a>. Ele fica salvo só neste navegador. Valores de renda fixa são brutos (antes do IR).</p>
       </div>
     </div>
   </section>
@@ -509,7 +600,7 @@ function alternarStatus(id) {
 /* ===================== Renderização ===================== */
 function render() {
   $('mesAtual').textContent = nomeMes(mesRef);
-  renderPainel(); renderTabela(); renderComparativo(); renderRelatorio();
+  renderPainel(); renderTabela(); renderComparativo(); renderRelatorio(); renderInvest();
 }
 
 function barrasCategoria(lista, classeExtra = '') {
@@ -547,6 +638,12 @@ function renderPainel() {
   $('barraComprometido').style.width = Math.min(pct, 100) + '%';
   $('barraComprometido').style.background = cor;
 
+  if (typeof totaisInv === 'function') {
+    const ti = totaisInv();
+    $('cInvest').textContent = brl(ti.atual);
+    $('cInvestSub').textContent = ti.investido ? `Rentabilidade: ${brl(ti.rent)} (${(ti.rent / ti.investido * 100).toFixed(2)}%)` : 'Cadastre na aba Investimentos';
+    $('cInvestSub').style.color = ti.rent < 0 ? 'var(--despesa)' : '';
+  }
   $('painelCategorias').innerHTML = barrasCategoria(lista.filter(l => l.tipo === 'despesa'));
 
   const abertos = lancamentos.filter(l => l.tipo === 'despesa' && l.status !== 'pago')
@@ -682,7 +779,7 @@ function exportar(nome, conteudo, tipo) {
     ]
   });
 }
-$('btnExportar').addEventListener('click', () => exportar(`financeiro-${hojeISO()}.json`, JSON.stringify(lancamentos, null, 2), 'application/json'));
+$('btnExportar').addEventListener('click', () => exportar(`financeiro-${hojeISO()}.json`, JSON.stringify({ lancamentos, investimentos: inv.itens.map(({ cot, ...x }) => x) }, null, 2), 'application/json'));
 $('btnExportarCSV').addEventListener('click', () => {
   const cab = 'Data;Descrição;Tipo;Categoria;Natureza;Status;Valor\n';
   const linhas = lancamentos.slice().sort((a, b) => a.data.localeCompare(b.data))
@@ -694,7 +791,9 @@ $('inputImportar').addEventListener('change', e => {
   const r = new FileReader();
   r.onload = () => {
     try {
-      const dados = JSON.parse(r.result);
+      let dados = JSON.parse(r.result);
+      if (dados && !Array.isArray(dados) && Array.isArray(dados.investimentos)) { inv.itens = dados.investimentos; salvarInv(); }
+      if (dados && !Array.isArray(dados)) dados = dados.lancamentos;
       if (!Array.isArray(dados)) throw 0;
       lancamentos = dados.filter(l => l && l.tipo && l.data && l.valor).map(l => ({ id: l.id || uid(), ...l }));
       salvar(); render(); toast(`${lancamentos.length} lançamentos importados`);
@@ -725,6 +824,256 @@ $('btnExemplo').addEventListener('click', async () => {
   }
   salvar(); render(); toast('Dados de exemplo carregados');
 });
+
+/* ===================== Investimentos ===================== */
+const CHAVE_INV = 'controleFinanceiro.invest.v1';
+const TIPOS_INV = { acao: 'Ação/FII/ETF', cripto: 'Cripto', moeda: 'Moeda', cdi: 'Renda fixa (CDI)', pre: 'Renda fixa (pré)', manual: 'Outro' };
+let inv = carregarInv();
+let invTimer = null, invAtualizando = false, invUltima = null;
+
+function carregarInv() {
+  try {
+    const d = JSON.parse(localStorage.getItem(CHAVE_INV));
+    if (d && Array.isArray(d.itens)) return { itens: d.itens, config: { cdi: 15, cdiFonte: 'manual', brapiToken: '', auto: true, ...d.config } };
+  } catch (e) {}
+  return { itens: [], config: { cdi: 15, cdiFonte: 'manual', brapiToken: '', auto: true } };
+}
+function salvarInv() { try { localStorage.setItem(CHAVE_INV, JSON.stringify(inv)); } catch (e) {} }
+
+function diasUteis(dataISO) {
+  if (!dataISO) return 0;
+  const dias = (Date.now() - new Date(dataISO + 'T00:00:00').getTime()) / 864e5;
+  return Math.max(0, dias * 252 / 365);
+}
+function valoresItem(it) {
+  const cdi = Number(inv.config.cdi) || 0;
+  if (['acao', 'cripto', 'moeda'].includes(it.tipo)) {
+    const investido = it.quantidade * it.precoMedio;
+    const preco = it.cot && it.cot.preco;
+    return { investido, atual: preco ? it.quantidade * preco : investido };
+  }
+  if (it.tipo === 'cdi') {
+    const diario = Math.pow(1 + cdi / 100, 1 / 252) - 1;
+    return { investido: it.valorAplicado, atual: it.valorAplicado * Math.pow(1 + diario * it.taxa / 100, diasUteis(it.dataAplicacao)) };
+  }
+  if (it.tipo === 'pre') return { investido: it.valorAplicado, atual: it.valorAplicado * Math.pow(1 + it.taxa / 100, diasUteis(it.dataAplicacao) / 252) };
+  return { investido: it.valorAplicado, atual: it.valorAtualManual || it.valorAplicado };
+}
+
+/* ---------- Formulário ---------- */
+function ajustarCamposInv() {
+  const t = $('invTipo').value;
+  document.querySelectorAll('#formInv [data-tipos]').forEach(l => l.classList.toggle('campo-oculto', !l.dataset.tipos.split(' ').includes(t)));
+  $('rotTaxa').textContent = t === 'cdi' ? '% do CDI (ex.: 110)' : 'Taxa ao ano (%)';
+  $('invTicker').placeholder = t === 'acao' ? 'Ex.: PETR4, MXRF11, BOVA11' : t === 'cripto' ? 'Ex.: BTC, ETH, SOL' : 'Ex.: USD, EUR';
+  $('dicaInv').textContent = {
+    acao: 'Cotação em tempo real pela brapi (B3). Sem token, só PETR4, VALE3, ITUB4 e MGLU3 funcionam — veja Configurações.',
+    cripto: 'Cotação em reais pela AwesomeAPI (BTC, ETH, SOL, XRP, DOGE, LTC...).',
+    moeda: 'Cotação em reais pela AwesomeAPI (USD, EUR, GBP, ARS...).',
+    cdi: 'Rendimento calculado todo dia útil com a taxa CDI das Configurações (buscada no Banco Central).',
+    pre: 'Rendimento calculado pela taxa prefixada desde a data da aplicação.',
+    manual: 'Para previdência, imóveis, fundos etc. Atualize o valor atual quando quiser.'
+  }[t];
+}
+$('invTipo').addEventListener('change', ajustarCamposInv);
+
+$('formInv').addEventListener('submit', e => {
+  e.preventDefault();
+  const t = $('invTipo').value, num = id => parseFloat($(id).value) || 0;
+  const item = {
+    tipo: t,
+    ticker: $('invTicker').value.trim().toUpperCase(),
+    nome: $('invNome').value.trim(),
+    quantidade: num('invQtd'), precoMedio: num('invPM'),
+    valorAplicado: num('invAplicado'), taxa: num('invTaxa'),
+    dataAplicacao: $('invData').value, valorAtualManual: num('invAtualManual')
+  };
+  if (['acao', 'cripto', 'moeda'].includes(t)) {
+    if (!item.ticker || !(item.quantidade > 0)) return toast('Informe o código e a quantidade');
+    if (!item.nome) item.nome = item.ticker;
+  } else {
+    if (!(item.valorAplicado > 0)) return toast('Informe o valor aplicado');
+    if (t !== 'manual' && !item.dataAplicacao) return toast('Informe a data da aplicação');
+    if (!item.nome) item.nome = TIPOS_INV[t];
+  }
+  const editId = $('invEditId').value;
+  if (editId) {
+    const i = inv.itens.findIndex(x => x.id === editId);
+    const mudouAtivo = inv.itens[i].ticker !== item.ticker || inv.itens[i].tipo !== item.tipo;
+    inv.itens[i] = { ...inv.itens[i], ...item, cot: mudouAtivo ? null : inv.itens[i].cot };
+    toast('Investimento atualizado');
+  } else { inv.itens.push({ id: uid(), ...item, cot: null }); toast('Investimento adicionado'); }
+  salvarInv(); limparFormInv(); renderInvest(); atualizarCotacoes();
+});
+function limparFormInv() {
+  const t = $('invTipo').value;
+  $('formInv').reset(); $('invTipo').value = t; $('invEditId').value = '';
+  $('tituloFormInv').textContent = 'Cadastrar investimento';
+  $('btnSalvarInv').textContent = 'Adicionar investimento';
+  $('btnCancelarInv').style.display = 'none';
+  ajustarCamposInv();
+}
+$('btnCancelarInv').addEventListener('click', limparFormInv);
+function editarInv(id) {
+  const it = inv.itens.find(x => x.id === id); if (!it) return;
+  $('invTipo').value = it.tipo; ajustarCamposInv();
+  $('invEditId').value = id; $('invTicker').value = it.ticker || ''; $('invNome').value = it.nome || '';
+  $('invQtd').value = it.quantidade || ''; $('invPM').value = it.precoMedio || '';
+  $('invAplicado').value = it.valorAplicado || ''; $('invTaxa').value = it.taxa || '';
+  $('invData').value = it.dataAplicacao || ''; $('invAtualManual').value = it.valorAtualManual || '';
+  $('tituloFormInv').textContent = 'Editar investimento';
+  $('btnSalvarInv').textContent = 'Salvar alterações';
+  $('btnCancelarInv').style.display = '';
+  $('formInv').scrollIntoView({ behavior: 'smooth' });
+}
+async function excluirInv(id) {
+  if (!(await confirmar('Excluir este investimento?'))) return;
+  inv.itens = inv.itens.filter(x => x.id !== id); salvarInv(); renderInvest(); toast('Investimento excluído');
+}
+
+/* ---------- Cotações em tempo real ---------- */
+async function buscarJSON(url, headers = {}) {
+  const ctrl = new AbortController(); const t = setTimeout(() => ctrl.abort(), 12000);
+  try {
+    const r = await fetch(url, { headers, signal: ctrl.signal });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.message || ('HTTP ' + r.status));
+    return j;
+  } finally { clearTimeout(t); }
+}
+async function atualizarCDI() {
+  try {
+    const j = await buscarJSON('https://api.bcb.gov.br/dados/serie/bcdata.sgs.4389/dados/ultimos/1?formato=json');
+    const v = parseFloat(String(j[0].valor).replace(',', '.'));
+    if (v > 0) { inv.config.cdi = v; inv.config.cdiFonte = 'bcb'; inv.config.cdiData = j[0].data; return true; }
+  } catch (e) {}
+  return false;
+}
+async function atualizarCotacoes() {
+  if (invAtualizando) return;
+  invAtualizando = true;
+  $('btnAtualizarInv').textContent = '↻ Atualizando...';
+  const vivos = inv.itens.filter(it => ['acao', 'cripto', 'moeda'].includes(it.tipo));
+  vivos.forEach(it => it.cot = { ...(it.cot || {}), status: 'carregando' });
+  renderInvest();
+  let falhas = 0, sucessos = 0;
+  const agora = new Date().toLocaleTimeString('pt-BR');
+
+  // Cripto e moedas (AwesomeAPI — uma chamada para todos)
+  const pares = [...new Set(vivos.filter(it => it.tipo !== 'acao').map(it => it.ticker + '-BRL'))];
+  if (pares.length) {
+    try {
+      const j = await buscarJSON('https://economia.awesomeapi.com.br/json/last/' + pares.join(','));
+      vivos.filter(it => it.tipo !== 'acao').forEach(it => {
+        const q = j[it.ticker + 'BRL'];
+        if (q) { it.cot = { preco: parseFloat(q.bid), var: parseFloat(q.pctChange), hora: agora, status: 'ok' }; sucessos++; }
+        else { it.cot = { ...it.cot, status: 'erro', msg: 'Código não encontrado' }; falhas++; }
+      });
+    } catch (e) {
+      vivos.filter(it => it.tipo !== 'acao').forEach(it => it.cot = { ...it.cot, status: 'erro', msg: 'Sem conexão com a AwesomeAPI' });
+      falhas++;
+    }
+  }
+  // Ações / FIIs / ETFs (brapi — 1 ativo por chamada no plano gratuito)
+  const tickers = [...new Set(vivos.filter(it => it.tipo === 'acao').map(it => it.ticker))];
+  const token = (inv.config.brapiToken || '').trim();
+  for (const tk of tickers) {
+    const alvo = vivos.filter(it => it.tipo === 'acao' && it.ticker === tk);
+    try {
+      const j = await buscarJSON('https://brapi.dev/api/quote/' + encodeURIComponent(tk), token ? { Authorization: 'Bearer ' + token } : {});
+      const q = j.results && j.results[0];
+      if (!q || !q.regularMarketPrice) throw new Error('Ativo não encontrado');
+      alvo.forEach(it => it.cot = { preco: q.regularMarketPrice, var: q.regularMarketChangePercent, hora: agora, status: 'ok' });
+      sucessos++;
+    } catch (e) {
+      const msg = /token|401|MISSING/i.test(e.message) ? 'Precisa de token da brapi' : e.message === 'Failed to fetch' ? 'Sem conexão com a brapi' : e.message;
+      alvo.forEach(it => it.cot = { ...it.cot, status: 'erro', msg });
+      falhas++;
+    }
+  }
+  const cdiOk = inv.itens.some(it => it.tipo === 'cdi') || !inv.config.cdiData ? await atualizarCDI() : true;
+
+  invUltima = new Date();
+  const bloqueado = falhas > 0 && sucessos === 0 && (vivos.length > 0) && !cdiOk;
+  $('avisoInvest').classList.toggle('show', bloqueado);
+  $('avisoInvest').textContent = bloqueado ? 'Não foi possível buscar as cotações. Se você está usando o sistema pela página do Claude, ela bloqueia conexões externas — use o link do GitHub Pages para ver os valores em tempo real. Também verifique sua internet.' : '';
+  salvarInv(); invAtualizando = false;
+  $('btnAtualizarInv').textContent = '↻ Atualizar agora';
+  renderInvest(); renderPainel();
+}
+function agendarAtualizacao() {
+  clearInterval(invTimer);
+  if (inv.config.auto) invTimer = setInterval(() => { if (!document.hidden && inv.itens.length) atualizarCotacoes(); }, 60000);
+}
+$('btnAtualizarInv').addEventListener('click', atualizarCotacoes);
+$('cfgToken').addEventListener('change', () => { inv.config.brapiToken = $('cfgToken').value.trim(); salvarInv(); atualizarCotacoes(); });
+$('cfgCDI').addEventListener('change', () => { inv.config.cdi = parseFloat($('cfgCDI').value) || 0; inv.config.cdiFonte = 'manual'; salvarInv(); renderInvest(); renderPainel(); });
+$('cfgAuto').addEventListener('change', () => { inv.config.auto = $('cfgAuto').checked; salvarInv(); agendarAtualizacao(); });
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && inv.itens.length && (!invUltima || Date.now() - invUltima > 60000)) atualizarCotacoes();
+});
+
+/* ---------- Renderização ---------- */
+function totaisInv() {
+  let investido = 0, atual = 0, varDia = 0, baseDia = 0;
+  inv.itens.forEach(it => {
+    const v = valoresItem(it); investido += v.investido; atual += v.atual;
+    if (it.cot && it.cot.status === 'ok' && isFinite(it.cot.var)) {
+      const ant = v.atual / (1 + it.cot.var / 100); varDia += v.atual - ant; baseDia += ant;
+    }
+  });
+  return { investido, atual, rent: atual - investido, varDia, baseDia };
+}
+function renderInvest() {
+  const t = totaisInv();
+  const cls = v => v >= 0 ? 'verde' : 'vermelho';
+  $('iInvestido').textContent = brl(t.investido);
+  $('iQtd').textContent = `${inv.itens.length} investimento(s)`;
+  $('iAtual').textContent = brl(t.atual);
+  $('iHora').innerHTML = invUltima ? `<span class="ponto-vivo"></span>Atualizado às ${invUltima.toLocaleTimeString('pt-BR')}` : 'Ainda não atualizado';
+  $('iRent').textContent = brl(t.rent); $('iRent').className = 'valor ' + cls(t.rent);
+  $('iRentPct').textContent = t.investido ? `${(t.rent / t.investido * 100).toFixed(2)}% sobre o investido` : '';
+  $('iHoje').textContent = t.baseDia ? `${brl(t.varDia)} (${(t.varDia / t.baseDia * 100).toFixed(2)}%)` : '—';
+  $('iHoje').className = 'valor ' + (t.baseDia ? cls(t.varDia) : '');
+
+  $('cfgToken').value = inv.config.brapiToken || '';
+  $('cfgCDI').value = inv.config.cdi;
+  $('cfgAuto').checked = !!inv.config.auto;
+  $('cdiFonte').textContent = inv.config.cdiFonte === 'bcb' ? `CDI obtido do Banco Central (série 4389) em ${inv.config.cdiData}.` : 'CDI informado manualmente.';
+
+  if (!inv.itens.length) { $('tabelaInv').innerHTML = '<tr><td colspan="11" class="vazio">Nenhum investimento cadastrado. Use o formulário abaixo.</td></tr>'; }
+  else $('tabelaInv').innerHTML = inv.itens.map(it => {
+    const v = valoresItem(it), r = v.atual - v.investido, vivo = ['acao', 'cripto', 'moeda'].includes(it.tipo);
+    const c = it.cot || {};
+    let fonte, cot, dia = '—';
+    if (vivo) {
+      cot = c.preco ? brl(c.preco) : '—';
+      if (c.status === 'ok' && isFinite(c.var)) dia = `<span class="${cls(c.var)}">${c.var >= 0 ? '+' : ''}${c.var.toFixed(2)}%</span>`;
+      fonte = c.status === 'carregando' ? '<span class="tag carregando">atualizando</span>'
+        : c.status === 'ok' ? `<span class="tag vivo" title="Atualizado às ${c.hora}">ao vivo · ${c.hora}</span>`
+        : c.status === 'erro' ? `<span class="tag erro" title="${c.msg || ''}">${c.msg || 'erro'}</span>` : '<span class="tag manual">aguardando</span>';
+    } else if (it.tipo === 'manual') { cot = '—'; fonte = '<span class="tag manual">manual</span>'; }
+    else { cot = it.tipo === 'cdi' ? `${it.taxa}% CDI` : `${it.taxa}% a.a.`; fonte = '<span class="tag calc">calculado</span>'; }
+    return `<tr>
+      <td><strong>${it.ticker || it.nome}</strong>${it.ticker && it.nome && it.nome !== it.ticker ? `<div class="sub" style="color:var(--muted);font-size:12px">${it.nome}</div>` : ''}</td>
+      <td>${TIPOS_INV[it.tipo]}</td>
+      <td class="num">${vivo ? it.quantidade.toLocaleString('pt-BR', { maximumFractionDigits: 8 }) : '—'}</td>
+      <td class="num">${vivo ? brl(it.precoMedio) : brl(it.valorAplicado)}</td>
+      <td class="num">${cot}</td>
+      <td class="num">${dia}</td>
+      <td class="num">${brl(v.investido)}</td>
+      <td class="num"><strong>${brl(v.atual)}</strong></td>
+      <td class="num ${cls(r)}">${brl(r)}<div style="font-size:12px">${v.investido ? (r / v.investido * 100).toFixed(2) + '%' : ''}</div></td>
+      <td>${fonte}</td>
+      <td><button class="btn pequeno" onclick="editarInv('${it.id}')">Editar</button>
+          <button class="btn pequeno" onclick="excluirInv('${it.id}')">Excluir</button></td></tr>`;
+  }).join('');
+
+  const porTipo = {};
+  inv.itens.forEach(it => porTipo[TIPOS_INV[it.tipo]] = (porTipo[TIPOS_INV[it.tipo]] || 0) + valoresItem(it).atual);
+  $('grafInv').innerHTML = inv.itens.length ? graficoRosca(Object.entries(porTipo).map(([nome, valor]) => ({ nome, valor })), 'Carteira')
+    : '<div class="vazio">Cadastre investimentos para ver a distribuição.</div>';
+}
 
 /* ===================== Relatório ===================== */
 const CENARIOS = {
@@ -980,7 +1329,10 @@ function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add
 
 /* ===================== Início ===================== */
 limparForm();
+ajustarCamposInv();
 render();
+agendarAtualizacao();
+if (inv.itens.length) atualizarCotacoes(); else atualizarCDI().then(ok => { if (ok) { salvarInv(); renderInvest(); } });
 </script>
 </body>
 </html>
